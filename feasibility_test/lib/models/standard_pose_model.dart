@@ -54,22 +54,35 @@ class StandardPose {
   });
 
   factory StandardPose.fromJson(Map<String, dynamic> json) {
-    final rawLm = json['landmarks'] as Map<String, dynamic>;
-    final lmMap = <PoseLandmarkType, StandardLandmark>{};
+    final landmarks = <PoseLandmarkType, StandardLandmark>{};
     
-    // 将JSON中的关键点名称转换为PoseLandmarkType
-    for (var entry in rawLm.entries) {
-      final landmarkType = _stringToPoseLandmarkType(entry.key);
-      if (landmarkType != null) {
-        lmMap[landmarkType] = StandardLandmark.fromJson(entry.value as List<dynamic>);
+    // 创建键名映射
+    final nameToType = Map<String, PoseLandmarkType>.fromEntries(
+      PoseLandmarkType.values.map((type) => 
+        MapEntry(type.name.replaceAllMapped(
+          RegExp(r'[A-Z]'), 
+          (match) => '_${match.group(0)!.toLowerCase()}'
+        ).toLowerCase(), type)
+      )
+    );
+
+    (json['landmarks'] as Map<String, dynamic>).forEach((key, value) {
+      final type = nameToType[key];
+      if (type != null) {
+        final coords = (value as List).cast<double>();
+        landmarks[type] = StandardLandmark(
+          x: coords[0],
+          y: coords[1],
+          z: coords[2],
+        );
       }
-    }
+    });
 
     return StandardPose(
       idx: json['idx'] as int,
-      timestamp: (json['timestamp'] as num).toDouble(),
+      timestamp: json['timestamp'] as double,
+      landmarks: landmarks,
       imgPath: json['img_path'] as String,
-      landmarks: lmMap,
     );
   }
 

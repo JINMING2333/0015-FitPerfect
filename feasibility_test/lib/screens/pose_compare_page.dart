@@ -285,6 +285,7 @@ class _PoseComparePageState extends State<PoseComparePage> {
                         size: Size(constraints.maxWidth, constraints.maxHeight),
                         painter: ComparePainter(
                           userPose: _userPose!,
+                          standardPose: standard,
                           imageSize: Size(
                             _cameraController!.value.previewSize?.height ?? 640.0,
                             _cameraController!.value.previewSize?.width ?? 480.0,
