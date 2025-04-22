@@ -17,7 +17,7 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
   final int _totalLevels = 9;
   
   // 当前进度
-  int _currentProgress = 4;
+  int _currentProgress = 3;
   
   // 每个关卡的状态
   final List<LevelData> _levels = [
@@ -76,15 +76,23 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          color: Color(0xFFE0F1D8), // 浅绿色背景
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF0F8E6), Color(0xFFE0F1D8)],
+          ),
         ),
         child: SafeArea(
           child: Column(
             children: [
               _buildHeader(sportName),
+              SizedBox(height: 20),
+              _buildProgressBar(),
+              SizedBox(height: 20),
               Expanded(
                 child: _buildLevelGrid(),
               ),
+              _buildBottomNavigationBar(),
             ],
           ),
         ),
@@ -94,122 +102,141 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
 
   Widget _buildHeader([String? sportName]) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
         children: [
-          // 返回按钮和标题
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.arrow_back, color: Colors.grey[700]),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              Expanded(
-                child: Text(
-                  sportName != null ? '${sportName} 闯关模式' : 'Let\'s play games~',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-              SizedBox(width: 48), // 保持标题居中的平衡
-            ],
+          IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.grey[700]),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-          
-          // 进度条
+          Expanded(
+            child: Text(
+              sportName != null ? '${sportName} Breakthrough Mode' : 'Breakthrough Mode',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          SizedBox(width: 48), // 保持标题居中的平衡
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 8),
+            child: Text(
+              'Your Progress',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            height: 70,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.brown[700],
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ],
             ),
             child: Row(
               children: [
-                // 左侧黑猫头像
+                // 猫咪图标
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.black,
+                    color: Colors.amber,
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Icon(
                       Icons.pets,
                       color: Colors.white,
-                      size: 18,
+                      size: 24,
                     ),
                   ),
                 ),
                 
-                // 中间标题和进度条
+                SizedBox(width: 16),
+                
+                // 进度条和文字
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '天卡进度',
-                          style: TextStyle(
-                            color: Color(0xFFFFD54F),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Level $_currentProgress completed',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 4),
-                        Stack(
-                          children: [
-                            // 背景条
-                            Container(
+                          Text(
+                            '$_currentProgress/$_totalLevels',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Stack(
+                        children: [
+                          // 背景条
+                          Container(
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          // 进度
+                          FractionallySizedBox(
+                            widthFactor: _currentProgress / _totalLevels,
+                            child: Container(
                               height: 8,
                               decoration: BoxDecoration(
-                                color: Colors.brown[500],
+                                color: Colors.green,
                                 borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.green.withOpacity(0.4),
+                                    blurRadius: 2,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ],
                               ),
                             ),
-                            // 进度
-                            FractionallySizedBox(
-                              widthFactor: _currentProgress / _totalLevels,
-                              child: Container(
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: Color(0xFFFFD54F),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          '$_currentProgress / $_totalLevels',
-                          style: TextStyle(
-                            color: Color(0xFFFFD54F),
-                            fontSize: 10,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // 右侧宝箱
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.brown[600],
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Icon(
-                    Icons.card_giftcard,
-                    color: Color(0xFFFFD54F),
-                    size: 20,
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -222,60 +249,89 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
 
   Widget _buildLevelGrid() {
     return Padding(
-      padding: const EdgeInsets.all(16),
-      child: GridView.count(
-        crossAxisCount: 3,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        children: List.generate(
-          _levels.length,
-          (index) => _buildLevelItem(_levels[index]),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 12),
+            child: Text(
+              'Challenge Levels',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          Expanded(
+            child: GridView.count(
+              crossAxisCount: 3,
+              mainAxisSpacing: 20,
+              crossAxisSpacing: 20,
+              childAspectRatio: 0.85,
+              children: List.generate(
+                _levels.length,
+                (index) => _buildLevelItem(_levels[index]),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildLevelItem(LevelData level) {
     Color backgroundColor;
+    Color borderColor;
     Widget icon;
-    bool showLock = false;
+    String statusText;
     
     switch (level.state) {
       case LevelState.completed:
-        backgroundColor = Colors.green;
+        backgroundColor = Colors.green.shade50;
+        borderColor = Colors.green;
+        statusText = 'Completed';
         icon = Image.asset(
           'assets/images/sunflower.png',
-          width: 40,
-          height: 40,
+          width: 50,
+          height: 50,
           errorBuilder: (context, error, stackTrace) => Icon(
             Icons.local_florist,
             color: Colors.yellow,
-            size: 40,
+            size: 50,
           ),
         );
         break;
       case LevelState.current:
-        backgroundColor = Colors.amber.shade200;
+        backgroundColor = Colors.amber.shade50;
+        borderColor = Colors.amber;
+        statusText = 'In Challenge';
         icon = Container(
-          width: 30,
-          height: 30,
+          width: 50,
+          height: 50,
           decoration: BoxDecoration(
-            color: Colors.black,
+            color: Colors.amber,
             shape: BoxShape.circle,
           ),
           child: Center(
             child: Icon(
               Icons.pets,
               color: Colors.white,
-              size: 18,
+              size: 30,
             ),
           ),
         );
         break;
       case LevelState.locked:
         backgroundColor = Color(0xFFF5F5DC); // 米白色
-        icon = Container();
-        showLock = true;
+        borderColor = Colors.grey.shade400;
+        statusText = 'Locked';
+        icon = Icon(
+          Icons.lock,
+          color: Colors.grey.shade500,
+          size: 40,
+        );
         break;
     }
 
@@ -284,58 +340,98 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
       child: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: borderColor, width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 4,
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
               offset: Offset(0, 2),
             ),
           ],
         ),
-        child: Stack(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // 关卡号
-            Positioned(
-              top: 8,
-              left: 8,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: level.state == LevelState.locked 
-                      ? Colors.grey.withOpacity(0.5)
-                      : Colors.white.withOpacity(0.8),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    '${level.number}',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: level.state == LevelState.locked 
+                    ? Colors.grey.shade300
+                    : borderColor,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  '${level.number}',
+                  style: TextStyle(
+                    color: level.state == LevelState.locked 
+                        ? Colors.grey.shade700
+                        : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
               ),
             ),
             
-            // 奖励或角色
-            Center(
-              child: icon,
-            ),
+            SizedBox(height: 12),
             
-            // 锁图标
-            if (showLock)
-              Center(
-                child: Icon(
-                  Icons.lock,
-                  color: Colors.grey,
-                  size: 28,
-                ),
+            // 图标
+            icon,
+            
+            SizedBox(height: 12),
+            
+            // 状态文本
+            Text(
+              statusText,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: level.state == LevelState.locked 
+                    ? Colors.grey.shade600
+                    : borderColor,
               ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: SafeArea(
+        top: false,
+        child: ElevatedButton(
+          onPressed: () {
+            if (_levels.any((level) => level.state == LevelState.current)) {
+              // 找到当前挑战的关卡
+              LevelData currentLevel = _levels.firstWhere(
+                (level) => level.state == LevelState.current
+              );
+              _onLevelTap(currentLevel);
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.amber,
+            minimumSize: Size(double.infinity, 56),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 0,
+          ),
+          child: Text(
+            'Continue to Current Challenge',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
         ),
       ),
     );
@@ -351,7 +447,13 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
         break;
       case LevelState.locked:
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('请先完成前面的关卡'))
+          SnackBar(
+            content: Text('Complete previous levels first to unlock this level'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          )
         );
         break;
     }
@@ -362,24 +464,24 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('第${level.number}关 - 已通关'),
+          title: Text('Level ${level.number} - Completed'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('恭喜您已完成本关卡！'),
+              Text('Congratulations! You\'ve completed this level successfully.'),
               SizedBox(height: 16),
-              Text('错误集锦：'),
+              Text('Error Summary:', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
-              _buildMistakeItem('姿势角度偏差', '右手抬高角度不足15°'),
-              _buildMistakeItem('姿势稳定性', '支撑腿轻微晃动'),
-              _buildMistakeItem('动作完成度', '深蹲未达到标准深度'),
+              _buildMistakeItem('Posture Angle', 'Right arm angle was 15° off'),
+              _buildMistakeItem('Stability', 'Minor wobbling on support leg'),
+              _buildMistakeItem('Motion Completion', 'Squat depth didn\'t reach standard'),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('关闭'),
+              child: Text('Close'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -389,9 +491,12 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
               ),
-              child: Text('重新挑战'),
+              child: Text('Try Again'),
             ),
           ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
         );
       },
     );
@@ -402,23 +507,23 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('第${level.number}关 - 开始挑战'),
+          title: Text('Level ${level.number} - Start Challenge'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('上次挑战的错误集锦：'),
+              Text('Previous attempt error summary:', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
-              _buildMistakeItem('姿势角度偏差', '身体倾斜超过10°'),
-              _buildMistakeItem('平衡性', '保持时间不足5秒'),
+              _buildMistakeItem('Posture Angle', 'Body tilt exceeded 10°'),
+              _buildMistakeItem('Balance', 'Hold time less than 5 seconds'),
               SizedBox(height: 16),
-              Text('准备好开始今天的挑战了吗？'),
+              Text('Ready to start today\'s challenge?'),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('取消'),
+              child: Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -428,9 +533,12 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.amber,
               ),
-              child: Text('开始挑战'),
+              child: Text('Start Challenge'),
             ),
           ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
         );
       },
     );

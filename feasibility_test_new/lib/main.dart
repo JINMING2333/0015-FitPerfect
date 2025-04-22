@@ -16,6 +16,8 @@ import 'screens/register_page.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'services/user_data_service.dart';
+import 'services/community_service.dart';
+import 'services/post_dialog_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +48,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => UserDataService()),
+        ChangeNotifierProvider(create: (_) => CommunityService()),
+        ChangeNotifierProvider(create: (_) => PostDialogService()),
       ],
       child: MaterialApp(
         title: '姿势教练',
