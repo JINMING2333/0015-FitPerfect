@@ -2,16 +2,19 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'standard_pose_model.dart';
+import 'pose_normalizer.dart';
 
 class ComparePainter extends CustomPainter {
   final Pose userPose;
   final StandardPose standardPose;
   final Size imageSize;
+  final bool showStandardPose;
 
   ComparePainter({
     required this.userPose,
     required this.standardPose,
     required this.imageSize,
+    this.showStandardPose = true,
   });
 
   static final Map<PoseLandmarkType, String> landmarkTypeMap = {
@@ -81,116 +84,118 @@ class ComparePainter extends CustomPainter {
     debugPrint('画布尺寸: ${size.width}x${size.height}');
     debugPrint('输入图像尺寸: ${imageSize.width}x${imageSize.height}');
     
-    final double scaleX = size.width / imageSize.width;
-    final double scaleY = size.height / imageSize.height;
-    final double scale = math.min(scaleX, scaleY);
-    
-    final double offsetX = (size.width - imageSize.width * scale) / 2;
-    final double offsetY = (size.height - imageSize.height * scale) / 2;
+    // 使用姿势归一化工具对齐标准姿势
+    final alignedStandardPose = PoseNormalizer.alignStandardPoseToUser(
+      standardPose,
+      userPose,
+      imageSize,
+      size,
+    );
 
-    debugPrint('缩放系数: scaleX=$scaleX, scaleY=$scaleY, scale=$scale');
-    debugPrint('偏移量: offsetX=$offsetX, offsetY=$offsetY');
-
-    // 坐标转换函数
+    // 坐标转换函数 - 用户姿势需要镜像
     Offset transformUserPoint(PoseLandmark landmark) {
-      final double x = size.width - (landmark.x * scale + offsetX);
-      final double y = landmark.y * scale + offsetY;
-      return Offset(x, y);
+      // 翻转X轴方向，使其与前置摄像头匹配
+      return Offset(
+        size.width - (landmark.x / imageSize.width * size.width),
+        landmark.y / imageSize.height * size.height
+      );
     }
 
-    Offset transformStandardPoint(StandardLandmark landmark) {
-      final double x = size.width - (landmark.x * scale + offsetX);
-      final double y = landmark.y * scale + offsetY;
-      return Offset(x, y);
-    }
+    // 记录要绘制的点和线，确保标准姿势先绘制，用户姿势后绘制
+    final standardLines = <(Offset, Offset)>[];
+    final standardPoints = <Offset>[];
+    final userLines = <(Offset, Offset)>[];
+    final userPoints = <Offset>[];
 
-    // 绘制标准姿势（蓝色）
-    final standardPaint = Paint()
-      ..color = Colors.blue.withOpacity(0.7)
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke;
-
-    // 修改标准姿势的绘制逻辑
+    // 收集标准姿势的线条和关键点
     for (final connection in connections) {
       final startType = connection.$1;
       final endType = connection.$2;
       
-      // 直接使用 PoseLandmarkType 作为键
-      final startPoint = standardPose.landmarks[startType];
-      final endPoint = standardPose.landmarks[endType];
+      final startPoint = alignedStandardPose[startType];
+      final endPoint = alignedStandardPose[endType];
 
       if (startPoint != null && endPoint != null) {
         debugPrint('绘制标准姿势线条: ${startType.name} -> ${endType.name}');
-        final startOffset = transformStandardPoint(startPoint);
-        final endOffset = transformStandardPoint(endPoint);
         
-        canvas.drawLine(startOffset, endOffset, standardPaint);
-        
-        // 绘制关键点
-        canvas.drawCircle(startOffset, 4, Paint()..color = Colors.blue);
-        canvas.drawCircle(endOffset, 4, Paint()..color = Colors.blue);
+        standardLines.add((startPoint, endPoint));
+        standardPoints.add(startPoint);
+        standardPoints.add(endPoint);
       } else {
         debugPrint('⚠️ 标准姿势缺少关键点: ${startType.name} 或 ${endType.name}');
       }
     }
 
-    // 绘制用户姿势（绿色）
-    final userPaint = Paint()
-      ..color = Colors.green
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke;
-
-    // 绘制用户姿势的连接线
+    // 收集用户姿势的线条和关键点
     for (final connection in connections) {
       final start = userPose.landmarks[connection.$1];
       final end = userPose.landmarks[connection.$2];
 
       if (start == null || end == null) continue;
 
-      canvas.drawLine(
-        transformUserPoint(start),
-        transformUserPoint(end),
-        userPaint,
-      );
+      final startOffset = transformUserPoint(start);
+      final endOffset = transformUserPoint(end);
+      
+      userLines.add((startOffset, endOffset));
+      userPoints.add(startOffset);
+      userPoints.add(endOffset);
     }
 
-    // 绘制关键点
-    final jointPaint = Paint()
+    // 先绘制标准姿势 - 蓝色
+    if (showStandardPose) {
+      final standardPaint = Paint()
+        ..color = Colors.blue.withOpacity(0.9)
+        ..strokeWidth = 6
+        ..style = PaintingStyle.stroke;
+
+      final standardJointPaint = Paint()
+        ..color = Colors.blue.withOpacity(1.0)
+        ..strokeWidth = 8
+        ..style = PaintingStyle.fill;
+
+      // 绘制标准姿势的线条
+      for (final line in standardLines) {
+        canvas.drawLine(line.$1, line.$2, standardPaint);
+      }
+
+      // 绘制标准姿势的关键点
+      for (final point in standardPoints) {
+        canvas.drawCircle(point, 4, standardJointPaint);
+      }
+    }
+
+    // 然后绘制用户姿势 - 绿色
+    final userPaint = Paint()
+      ..color = Colors.green.withOpacity(0.8)
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke;
+
+    final userJointPaint = Paint()
       ..color = Colors.white
-      ..strokeWidth = 6
+      ..strokeWidth = 4
       ..style = PaintingStyle.fill;
 
-    // 绘制标准姿势的关键点
-    standardPose.landmarks.forEach((_, landmark) {
-      canvas.drawCircle(
-        transformStandardPoint(landmark),
-        4,
-        jointPaint,
-      );
-    });
+    // 绘制用户姿势的线条
+    for (final line in userLines) {
+      canvas.drawLine(line.$1, line.$2, userPaint);
+    }
 
     // 绘制用户姿势的关键点
-    userPose.landmarks.forEach((_, landmark) {
-      canvas.drawCircle(
-        transformUserPoint(landmark),
-        4,
-        jointPaint,
-      );
-    });
+    for (final point in userPoints) {
+      canvas.drawCircle(point, 3, userJointPaint);
+    }
 
     // 添加更多调试信息
-    debugPrint('\n===== 标准姿势绘制信息 =====');
+    debugPrint('\n===== 姿势对齐信息 =====');
     debugPrint('标准姿势关键点总数: ${standardPose.landmarks.length}');
-    standardPose.landmarks.forEach((key, value) {
-      final transformed = transformStandardPoint(value);
-      debugPrint('关键点 $key: 原始(${value.x}, ${value.y}) -> 变换后(${transformed.dx}, ${transformed.dy})');
-    });
+    debugPrint('对齐后的标准姿势关键点总数: ${alignedStandardPose.length}');
   }
 
   @override
   bool shouldRepaint(covariant ComparePainter oldDelegate) {
     return oldDelegate.userPose != userPose || 
            oldDelegate.standardPose != standardPose ||
-           oldDelegate.imageSize != imageSize;
+           oldDelegate.imageSize != imageSize ||
+           oldDelegate.showStandardPose != showStandardPose;
   }
 }

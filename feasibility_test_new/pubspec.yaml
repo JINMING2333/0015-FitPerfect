@@ -76,6 +76,7 @@ flutter:
   assets:
     - assets/
     - assets/standard_cycle.json
+    - assets/full_standard.json
     - assets/demo.mp4
     - assets/images/
     - assets/data/

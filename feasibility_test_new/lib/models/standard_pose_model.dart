@@ -52,6 +52,16 @@ class StandardPose {
     required this.imgPath,
     required this.landmarks,
   });
+  
+  /// 创建一个空的标准姿势
+  factory StandardPose.empty() {
+    return StandardPose(
+      idx: 0,
+      timestamp: 0.0,
+      imgPath: '',
+      landmarks: {},
+    );
+  }
 
   factory StandardPose.fromJson(Map<String, dynamic> json) {
     final landmarks = <PoseLandmarkType, StandardLandmark>{};
@@ -92,17 +102,13 @@ class StandardPose {
       debugPrint('\n===== 加载标准姿势数据 =====');
       final jsonString = await rootBundle.loadString(path);
       debugPrint('JSON数据长度: ${jsonString.length}');
-      final List<dynamic> jsonList = json.decode(jsonString);
+      
+      // 使用 compute 在后台线程解析大型 JSON
+      final List<dynamic> jsonList = await compute(_parseJsonString, jsonString);
       debugPrint('解析到姿势帧数: ${jsonList.length}');
       
-      final poses = jsonList.map((poseJson) {
-        return StandardPose(
-          idx: poseJson['idx'] as int? ?? 0,
-          timestamp: (poseJson['timestamp'] as num?)?.toDouble() ?? 0.0,
-          imgPath: poseJson['img_path'] as String? ?? '',
-          landmarks: _parseLandmarks(poseJson['landmarks'] as Map<String, dynamic>? ?? {}),
-        );
-      }).toList();
+      // 使用 compute 在后台线程处理大量数据
+      final poses = await compute(_parseStandardPoses, jsonList);
       
       debugPrint('成功加载姿势数: ${poses.length}');
       return poses;
@@ -111,6 +117,23 @@ class StandardPose {
       debugPrint('堆栈: $stack');
       return [];
     }
+  }
+  
+  /// 在后台线程解析 JSON 字符串
+  static List<dynamic> _parseJsonString(String jsonString) {
+    return json.decode(jsonString);
+  }
+  
+  /// 在后台线程解析标准姿势列表
+  static List<StandardPose> _parseStandardPoses(List<dynamic> jsonList) {
+    return jsonList.map((poseJson) {
+      return StandardPose(
+        idx: poseJson['idx'] as int? ?? 0,
+        timestamp: (poseJson['timestamp'] as num?)?.toDouble() ?? 0.0,
+        imgPath: poseJson['img_path'] as String? ?? '',
+        landmarks: _parseLandmarks(poseJson['landmarks'] as Map<String, dynamic>? ?? {}),
+      );
+    }).toList();
   }
 
   /// 将字符串转换为PoseLandmarkType

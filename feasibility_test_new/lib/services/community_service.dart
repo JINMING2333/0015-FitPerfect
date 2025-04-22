@@ -195,4 +195,74 @@ class CommunityService extends ChangeNotifier {
       return false;
     }
   }
+  
+  // Edit post
+  Future<bool> editPost({
+    required String postId,
+    String? title,
+    String? content,
+    String? imageUrl,
+  }) async {
+    if (!isLoggedIn) return false;
+    
+    try {
+      DocumentSnapshot postDoc = await _firestore.collection('community_posts').doc(postId).get();
+      
+      if (!postDoc.exists) return false;
+      
+      Map<String, dynamic> postData = postDoc.data() as Map<String, dynamic>;
+      
+      // Check if current user is the author
+      if (postData['authorId'] != userId) {
+        return false;
+      }
+      
+      // Prepare update data
+      Map<String, dynamic> updateData = {};
+      
+      if (title != null) {
+        updateData['title'] = title;
+      }
+      
+      if (content != null) {
+        updateData['content'] = content;
+      }
+      
+      if (imageUrl != null) {
+        updateData['imageUrl'] = imageUrl;
+      }
+      
+      // Add edited flag and timestamp
+      updateData['edited'] = true;
+      updateData['editTimestamp'] = FieldValue.serverTimestamp();
+      
+      // Update post
+      await _firestore.collection('community_posts').doc(postId).update(updateData);
+      
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Edit post error: $e');
+      return false;
+    }
+  }
+  
+  // Get top liked posts
+  Stream<List<Map<String, dynamic>>> getTopLikedPosts(int limit) {
+    return _firestore
+        .collection('community_posts')
+        .orderBy('likes', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            final data = doc.data();
+            // Add the document ID to the returned data
+            return {
+              'id': doc.id,
+              ...data,
+            };
+          }).toList();
+        });
+  }
 } 
