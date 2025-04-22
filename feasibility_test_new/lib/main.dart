@@ -59,10 +59,20 @@ class MyApp extends StatelessWidget {
           '/onboarding': (context) => const OnboardingPage(),
           '/login': (context) => const LoginPage(),
           '/register': (context) => const RegisterPage(),
-          '/home': (context) => const MainNavigationPage(),
+          '/home': (context) {
+            final Object? args = ModalRoute.of(context)?.settings.arguments;
+            return MainNavigationPage(
+              initialIndex: args is int ? args : 0,
+            );
+          },
           '/pose_compare': (context) => const PoseComparePage(),
           '/test_image_pose': (context) => const PoseImageTestPage(),
-          '/breakthrough_mode': (context) => const BreakthroughModePage(),
+          '/breakthrough_mode': (context) {
+            final Object? args = ModalRoute.of(context)?.settings.arguments;
+            return BreakthroughModePage(
+              selectedSport: args is String ? args : null,
+            );
+          },
           '/recommended_sports': (context) => const RecommendedSportsPage(),
         },
         debugShowCheckedModeBanner: false,
@@ -72,26 +82,47 @@ class MyApp extends StatelessWidget {
 }
 
 class MainNavigationPage extends StatefulWidget {
-  const MainNavigationPage({super.key});
+  final int initialIndex;
+  
+  const MainNavigationPage({
+    super.key,
+    this.initialIndex = 0,
+  });
 
   @override
   State<MainNavigationPage> createState() => _MainNavigationPageState();
 }
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+  
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
   
   final List<Widget> _pages = [
-    const PoseComparePage(),
+    const RecommendedSportsPage(),
     const HistoryPage(),
     const CommunityPage(),
     const SettingsPage(),
   ];
   
-  final List<String> _titles = ['训练', '历史记录', '社区', '设置'];
+  final List<String> _titles = ['推荐', '历史记录', '社区', '设置'];
 
   @override
   Widget build(BuildContext context) {
+    // Get tab index from route arguments, if available
+    final Object? args = ModalRoute.of(context)?.settings.arguments;
+    if (args != null && args is int && args != _currentIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _currentIndex = args;
+        });
+      });
+    }
+    
     return Scaffold(
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -106,7 +137,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
         unselectedItemColor: Colors.grey,
         items: [
           BottomNavigationBarItem(
-            icon: const Icon(Icons.fitness_center),
+            icon: const Icon(Icons.home),
             label: _titles[0],
           ),
           BottomNavigationBarItem(

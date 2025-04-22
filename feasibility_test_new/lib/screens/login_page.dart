@@ -31,8 +31,8 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (success && mounted) {
-        // 登录成功，导航到主页
-        Navigator.of(context).pushReplacementNamed('/home');
+        // 登录成功，导航到主页的推荐运动页面
+        Navigator.of(context).pushReplacementNamed('/home', arguments: 0);
       }
     }
   }

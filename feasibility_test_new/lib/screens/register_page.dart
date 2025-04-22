@@ -35,8 +35,8 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       if (success && mounted) {
-        // 注册成功，导航到主页
-        Navigator.of(context).pushReplacementNamed('/home');
+        // 注册成功，导航到主页的推荐运动页面
+        Navigator.of(context).pushReplacementNamed('/home', arguments: 0);
       }
     }
   }
