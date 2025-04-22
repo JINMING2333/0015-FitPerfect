@@ -12,10 +12,12 @@ class CreatePostDialog extends StatefulWidget {
 }
 
 class _CreatePostDialogState extends State<CreatePostDialog> {
+  final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   
   @override
   void dispose() {
+    _titleController.dispose();
     _contentController.dispose();
     super.dispose();
   }
@@ -38,6 +40,20 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            TextField(
+              controller: _titleController,
+              decoration: InputDecoration(
+                hintText: 'Post title',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.green, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _contentController,
               maxLines: 4,
@@ -93,6 +109,7 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
                   final success = await postDialogService.createPost(
                     communityService, 
                     _contentController.text.trim(),
+                    title: _titleController.text.trim(),
                   );
                   
                   if (success && context.mounted) {

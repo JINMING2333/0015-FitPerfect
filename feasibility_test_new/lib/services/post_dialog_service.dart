@@ -22,7 +22,7 @@ class PostDialogService extends ChangeNotifier {
   }
 
   // 发布新帖子
-  Future<bool> createPost(CommunityService communityService, String content) async {
+  Future<bool> createPost(CommunityService communityService, String content, {String? title}) async {
     try {
       _isLoading = true;
       _error = null;
@@ -32,6 +32,7 @@ class PostDialogService extends ChangeNotifier {
       // 调用社区服务发布帖子
       final success = await communityService.createPost(
         content: content,
+        title: title,
         // 移除图片功能
         imageUrl: null,
       );

@@ -181,6 +181,8 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
   }
 
   Widget _buildRecommendSection() {
+    final communityService = Provider.of<CommunityService>(context);
+    
     return Container(
       padding: const EdgeInsets.all(16),
       color: Colors.white,
@@ -190,7 +192,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
           const Padding(
             padding: EdgeInsets.only(bottom: 12),
             child: Text(
-              'Recommended Activities',
+              'Popular Posts',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -199,29 +201,43 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
             ),
           ),
           SizedBox(
-            height: 180,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _buildActivityCard(
-                  '30-Day Yoga Challenge',
-                  'assets/images/yoga_challenge.jpg',
-                  '328 participants',
-                  Colors.blue.shade50,
-                ),
-                _buildActivityCard(
-                  '5K Daily Run',
-                  'assets/images/running_challenge.jpg',
-                  '156 participants',
-                  Colors.green.shade50,
-                ),
-                _buildActivityCard(
-                  '7-Day Perfect Squat',
-                  'assets/images/squat_challenge.jpg',
-                  '89 participants',
-                  Colors.orange.shade50,
-                ),
-              ],
+            height: 200,
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: communityService.getTopLikedPosts(3),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error loading popular posts',
+                      style: TextStyle(color: Colors.red[400]),
+                    ),
+                  );
+                }
+                
+                final posts = snapshot.data ?? [];
+                
+                if (posts.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No posts yet. Be the first to share!',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  );
+                }
+                
+                return ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: posts.length,
+                  itemBuilder: (context, index) {
+                    final post = posts[index];
+                    return _buildPopularPostCard(post);
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -229,68 +245,376 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
     );
   }
 
-  Widget _buildActivityCard(String title, String imageAsset, String participants, Color color) {
-    return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(12),
-              topRight: Radius.circular(12),
+  Widget _buildPopularPostCard(Map<String, dynamic> post) {
+    final String postId = post['id'] ?? '';
+    String title = post['title'] ?? 'Untitled';
+    int likes = post['likes'] ?? 0;
+    String authorName = post['authorName'] ?? 'Anonymous';
+    
+    // Truncate title if too long
+    if (title.length > 20) {
+      title = '${title.substring(0, 20)}...';
+    }
+    
+    return GestureDetector(
+      onTap: () {
+        _showPostDetailDialog(context, postId);
+      },
+      child: Container(
+        width: 150,
+        height: 160,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
             ),
-            child: Image.asset(
-              imageAsset,
-              height: 100,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                height: 100,
-                color: color.withOpacity(0.5),
-                child: Icon(Icons.image, color: Colors.grey[400], size: 40),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Title and likes at top
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.favorite, color: Colors.red.shade400, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$likes',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
+            
+            // Author information at bottom
+            Positioned(
+              left: 12,
+              bottom: 12,
+              child: Text(
+                'By $authorName',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPostDetailDialog(BuildContext context, String postId) {
+    final communityService = Provider.of<CommunityService>(context, listen: false);
+    
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+          child: FutureBuilder<DocumentSnapshot>(
+            future: FirebaseFirestore.instance.collection('community_posts').doc(postId).get(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SizedBox(
+                  height: 200,
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              
+              if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
+                return const SizedBox(
+                  height: 200,
+                  child: Center(child: Text('Error loading post')),
+                );
+              }
+              
+              final postData = snapshot.data!.data() as Map<String, dynamic>;
+              final String title = postData['title'] ?? 'Untitled';
+              final String content = postData['content'] ?? '';
+              final String authorName = postData['authorName'] ?? 'Anonymous';
+              final Timestamp? timestamp = postData['timestamp'] as Timestamp?;
+              final DateTime postDate = timestamp?.toDate() ?? DateTime.now();
+              final String timeAgo = _getTimeAgo(postDate);
+              
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Post header
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade100,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundImage: postData['authorPhotoUrl'] != null
+                                    ? NetworkImage(postData['authorPhotoUrl'])
+                                    : null,
+                                backgroundColor: Colors.grey[200],
+                                child: postData['authorPhotoUrl'] == null
+                                    ? Icon(Icons.person, color: Colors.grey[400], size: 16)
+                                    : null,
+                              ),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    authorName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Text(
+                                    timeAgo,
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Post content
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        content,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                    
+                    // Divider
+                    Divider(color: Colors.grey[300]),
+                    
+                    // Comment section
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Comments',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 300,
+                            child: CommentSection(postId: postId),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget CommentSection(
+    {required String postId}) {
+    final communityService = Provider.of<CommunityService>(context, listen: false);
+    final TextEditingController commentController = TextEditingController();
+    
+    return Column(
+      children: [
+        // Comment input
+        if (communityService.isLoggedIn)
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: commentController,
+                  decoration: InputDecoration(
+                    hintText: 'Write a comment...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  participants,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.send),
+                color: Colors.green,
+                onPressed: () async {
+                  if (commentController.text.trim().isNotEmpty) {
+                    await communityService.addComment(
+                      postId: postId,
+                      content: commentController.text.trim(),
+                    );
+                    commentController.clear();
+                  }
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        const SizedBox(height: 12),
+        
+        // Comments list
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: communityService.getPostComments(postId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error loading comments: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                );
+              }
+              
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No comments yet. Be the first to comment!',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                );
+              }
+              
+              final comments = snapshot.data!.docs;
+              
+              return ListView.separated(
+                itemCount: comments.length,
+                separatorBuilder: (_, __) => Divider(color: Colors.grey[200]),
+                itemBuilder: (context, index) {
+                  final comment = comments[index].data() as Map<String, dynamic>;
+                  final Timestamp? timestamp = comment['timestamp'] as Timestamp?;
+                  final DateTime commentDate = timestamp?.toDate() ?? DateTime.now();
+                  final String timeAgo = _getTimeAgo(commentDate);
+                  
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundImage: comment['authorPhotoUrl'] != null
+                              ? NetworkImage(comment['authorPhotoUrl'])
+                              : null,
+                          backgroundColor: Colors.grey[200],
+                          child: comment['authorPhotoUrl'] == null
+                              ? Icon(Icons.person, color: Colors.grey[400], size: 14)
+                              : null,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    comment['authorName'] ?? 'Anonymous',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    timeAgo,
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                comment['content'] ?? '',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -449,9 +773,27 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
           // Post content
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
-              post['content'] ?? '',
-              style: const TextStyle(fontSize: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Post title
+                if (post['title'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      post['title'] ?? '',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                // Post content
+                Text(
+                  post['content'] ?? '',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
             ),
           ),
           
@@ -489,13 +831,6 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                   '${post['comments'] ?? 0}',
                   Colors.grey[600],
                   () => _showCommentsDialog(context, postId),
-                ),
-                const SizedBox(width: 16),
-                _buildInteractionButton(
-                  Icons.share_outlined,
-                  'Share',
-                  Colors.grey[600],
-                  () {},
                 ),
               ],
             ),

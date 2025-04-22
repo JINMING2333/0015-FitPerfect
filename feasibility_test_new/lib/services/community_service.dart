@@ -35,6 +35,7 @@ class CommunityService extends ChangeNotifier {
   // Create a new post
   Future<bool> createPost({
     required String content,
+    String? title,
     String? imageUrl,
     String category = 'general',
   }) async {
@@ -57,6 +58,7 @@ class CommunityService extends ChangeNotifier {
         'authorId': userId,
         'authorName': authorName,
         'authorPhotoUrl': authorPhotoUrl,
+        'title': title,
         'content': content,
         'imageUrl': imageUrl,
         'category': category,
