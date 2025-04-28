@@ -69,9 +69,10 @@ class _PoseComparePageState extends State<PoseComparePage> {
       // 3. Init video
       _videoController = VideoPlayerController.asset('assets/demo.mp4');
       await _videoController!.initialize();
-      _videoController!
-        ..setLooping(true)
-        ..play();
+      _videoController!.setLooping(true);
+      _videoController!.addListener(() {
+        if (mounted) setState(() {});
+      });
     } catch (e) {
       debugPrint('🔴 资源加载失败: $e');
     } finally {
@@ -377,31 +378,52 @@ class _PoseComparePageState extends State<PoseComparePage> {
                               showStandardPose: _showStandardPose,
                             ),
                           ),
-                          // 标准姿势显示开关
+                          // 检测状态灰色半透明模块，固定在左上角
                           Positioned(
+                            left: 10,
                             top: 10,
-                            right: 10,
                             child: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Colors.black54,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                              constraints: const BoxConstraints(maxWidth: 200),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    '显示标准姿势',
-                                    style: TextStyle(color: Colors.white),
+                                  Text(
+                                    '检测状态: ${_userPose != null ? "已检测" : "未检测"}',
+                                    style: const TextStyle(color: Colors.white),
                                   ),
-                                  Switch(
-                                    value: _showStandardPose,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _showStandardPose = value;
-                                      });
-                                    },
-                                    activeColor: Colors.blue,
+                                  if (_userPose != null) Text(
+                                    '关键点数: ${_userPose!.landmarks.length}',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                  if (_userPose != null) Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        '匹配得分: ${_matchScore.toStringAsFixed(1)}',
+                                        style: TextStyle(
+                                          color: _getScoreColor(_matchScore),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      LinearProgressIndicator(
+                                        value: _matchScore / 100,
+                                        backgroundColor: Colors.grey[700],
+                                        valueColor: AlwaysStoppedAnimation<Color>(_getScoreColor(_matchScore)),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        _getScoreFeedback(_matchScore),
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -416,73 +438,55 @@ class _PoseComparePageState extends State<PoseComparePage> {
           ),
           Expanded(
             flex: 1,
-            child: Stack(
-              children: [
-                VideoPlayer(_videoController!),
-                Positioned(
-                  right: 10,
-                  bottom: 10,
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: Text(
-                      '标准示范: ${((_videoController!.value.position.inMilliseconds / 
-                          _videoController!.value.duration.inMilliseconds) * 100).toStringAsFixed(1)}%',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 10,
-            top: 10,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              constraints: const BoxConstraints(maxWidth: 200),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            child: AspectRatio(
+              aspectRatio: _videoController!.value.aspectRatio,
+              child: Stack(
                 children: [
-                  Text(
-                    '检测状态: ${_userPose != null ? "已检测" : "未检测"}',
-                    style: const TextStyle(color: Colors.white),
+                  VideoPlayer(_videoController!),
+                  Positioned(
+                    right: 10,
+                    bottom: 10,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        '标准示范: ${((_videoController!.value.position.inMilliseconds / (_videoController!.value.duration.inMilliseconds == 0 ? 1 : _videoController!.value.duration.inMilliseconds)) * 100).toStringAsFixed(1)}%',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
                   ),
-                  if (_userPose != null) Text(
-                    '关键点数: ${_userPose!.landmarks.length}',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  if (_userPose != null) Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 5),
-                      Text(
-                        '匹配得分: ${_matchScore.toStringAsFixed(1)}',
-                        style: TextStyle(
-                          color: _getScoreColor(_matchScore),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                  Positioned(
+                    left: 10,
+                    bottom: 10,
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            _videoController!.value.isPlaying
+                                ? Icons.pause
+                                : Icons.play_arrow,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            if (_videoController!.value.isPlaying) {
+                              _videoController!.pause();
+                            } else {
+                              _videoController!.play();
+                            }
+                          },
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      LinearProgressIndicator(
-                        value: _matchScore / 100,
-                        backgroundColor: Colors.grey[700],
-                        valueColor: AlwaysStoppedAnimation<Color>(_getScoreColor(_matchScore)),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        _getScoreFeedback(_matchScore),
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                    ],
+                        IconButton(
+                          icon: const Icon(Icons.replay, color: Colors.white),
+                          onPressed: () {
+                            _videoController!.seekTo(Duration.zero);
+                            _videoController!.play();
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

@@ -182,4 +182,9 @@ class StandardPose {
     
     return landmarks;
   }
+
+  static List<StandardPose> parseStandardPoses(String jsonString) {
+    final List<dynamic> jsonList = json.decode(jsonString);
+    return jsonList.map((json) => StandardPose.fromJson(json as Map<String, dynamic>)).toList();
+  }
 }
