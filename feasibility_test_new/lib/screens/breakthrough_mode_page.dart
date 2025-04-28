@@ -460,6 +460,9 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
   }
 
   void _showCompletedLevelDialog(LevelData level) {
+    final Object? routeArgs = ModalRoute.of(context)?.settings.arguments;
+    final String? sportName = routeArgs is String ? routeArgs : widget.selectedSport;
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -486,7 +489,11 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/pose_compare');
+                Navigator.pushNamed(
+                  context,
+                  '/pose_compare',
+                  arguments: _getExerciseId(sportName ?? ''),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
@@ -503,6 +510,9 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
   }
 
   void _showCurrentLevelDialog(LevelData level) {
+    final Object? routeArgs = ModalRoute.of(context)?.settings.arguments;
+    final String? sportName = routeArgs is String ? routeArgs : widget.selectedSport;
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -528,7 +538,11 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/pose_compare');
+                Navigator.pushNamed(
+                  context,
+                  '/pose_compare',
+                  arguments: _getExerciseId(sportName ?? ''),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.amber,
@@ -542,6 +556,20 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
         );
       },
     );
+  }
+
+  String _getExerciseId(String sportName) {
+    // 将运动名称转换为对应的exerciseId
+    switch (sportName.toLowerCase()) {
+      case 'run':
+        return 'run';
+      case 'stretch':
+        return 'stretch';
+      case 'back kick':
+        return 'back_kick';
+      default:
+        return 'run'; // 默认返回run
+    }
   }
 
   Widget _buildMistakeItem(String title, String description) {

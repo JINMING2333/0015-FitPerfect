@@ -10,11 +10,16 @@ import 'package:video_player/video_player.dart';
 import '../models/standard_pose_model.dart';
 import '../models/compare_painter.dart';
 import '../models/pose_normalizer.dart';
+import '../models/exercise.dart';
+import '../services/supabase_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 late List<CameraDescription> cameras;
 
 class PoseComparePage extends StatefulWidget {
-  const PoseComparePage({Key? key}) : super(key: key);
+  final String? exerciseId;
+  const PoseComparePage({Key? key, this.exerciseId}) : super(key: key);
 
   @override
   State<PoseComparePage> createState() => _PoseComparePageState();
@@ -26,6 +31,7 @@ class _PoseComparePageState extends State<PoseComparePage> {
   VideoPlayerController? _videoController;
   bool _initialized = false;
   bool _showStandardPose = true;
+  Exercise? _currentExercise;
 
   final _poseDetector = PoseDetector(
     options: PoseDetectorOptions(mode: PoseDetectionMode.stream),
@@ -45,11 +51,28 @@ class _PoseComparePageState extends State<PoseComparePage> {
 
   Future<void> _loadResources() async {
     try {
-      // 1. Load standard poses
-      _standardPoses =
-          await StandardPose.loadFromAssets('assets/full_standard.json');
+      final supabase = SupabaseService();
+      
+      // 1. 获取练习数据
+      if (widget.exerciseId != null) {
+        final exercises = await supabase.getExercises();
+        _currentExercise = Exercise.fromJson(
+          exercises.firstWhere((e) => e['id'] == widget.exerciseId)
+        );
+      }
 
-      // 2. Init camera
+      if (_currentExercise == null) {
+        throw Exception('Exercise not found');
+      }
+
+      // 2. 加载JSON文件
+      debugPrint('开始加载JSON文件: ${_currentExercise!.jsonUrl}');
+      final jsonContent = await supabase.getJsonContent(_currentExercise!.jsonUrl);
+      final jsonData = json.decode(jsonContent);
+      _standardPoses = StandardPose.fromJsonList(jsonData);
+      debugPrint('成功加载标准姿势数据，数量: ${_standardPoses.length}');
+
+      // 3. 初始化相机
       cameras = await availableCameras();
       _cameraDescription = cameras.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.front,
@@ -66,8 +89,9 @@ class _PoseComparePageState extends State<PoseComparePage> {
       await _cameraController!.initialize();
       await _cameraController!.startImageStream(_processCameraImage);
 
-      // 3. Init video
-      _videoController = VideoPlayerController.asset('assets/demo.mp4');
+      // 4. 初始化视频
+      final videoUrl = await supabase.getVideoUrl(_currentExercise!.videoUrl);
+      _videoController = VideoPlayerController.network(videoUrl);
       await _videoController!.initialize();
       _videoController!.setLooping(true);
       _videoController!.addListener(() {

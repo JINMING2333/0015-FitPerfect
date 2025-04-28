@@ -13,11 +13,14 @@ import 'screens/breakthrough_mode_page.dart';
 import 'screens/recommended_sports_page.dart';
 import 'screens/login_page.dart';
 import 'screens/register_page.dart';
+import 'screens/favorites_page.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'services/user_data_service.dart';
 import 'services/community_service.dart';
 import 'services/post_dialog_service.dart';
+import 'services/supabase_service.dart';
+import 'services/favorites_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +39,9 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // 初始化Supabase
+  await SupabaseService().initialize();
+
   runApp(const MyApp());
 }
 
@@ -50,6 +56,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserDataService()),
         ChangeNotifierProvider(create: (_) => CommunityService()),
         ChangeNotifierProvider(create: (_) => PostDialogService()),
+        ChangeNotifierProvider(create: (_) => FavoritesService()),
       ],
       child: MaterialApp(
         title: '姿势教练',
@@ -63,13 +70,17 @@ class MyApp extends StatelessWidget {
           '/onboarding': (context) => const OnboardingPage(),
           '/login': (context) => const LoginPage(),
           '/register': (context) => const RegisterPage(),
+          '/favorites': (context) => const FavoritesPage(),
           '/home': (context) {
             final Object? args = ModalRoute.of(context)?.settings.arguments;
             return MainNavigationPage(
               initialIndex: args is int ? args : 0,
             );
           },
-          '/pose_compare': (context) => const PoseComparePage(),
+          '/pose_compare': (context) {
+            final Object? args = ModalRoute.of(context)?.settings.arguments;
+            return PoseComparePage(exerciseId: args as String);
+          },
           '/test_image_pose': (context) => const PoseImageTestPage(),
           '/breakthrough_mode': (context) {
             final Object? args = ModalRoute.of(context)?.settings.arguments;

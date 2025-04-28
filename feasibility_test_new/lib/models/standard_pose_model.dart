@@ -187,4 +187,9 @@ class StandardPose {
     final List<dynamic> jsonList = json.decode(jsonString);
     return jsonList.map((json) => StandardPose.fromJson(json as Map<String, dynamic>)).toList();
   }
+
+  /// 从JSON列表创建标准姿势列表
+  static List<StandardPose> fromJsonList(List<dynamic> jsonList) {
+    return jsonList.map((json) => StandardPose.fromJson(json as Map<String, dynamic>)).toList();
+  }
 }
