@@ -40,19 +40,19 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
-        title: const Text(
+        backgroundColor: Colors.amber,
+        title: Text(
           'Community',
           style: TextStyle(
-            color: Colors.black87,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.green,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.green,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
           tabs: const [
             Tab(
               icon: Icon(Icons.chat_bubble_outline),
@@ -66,9 +66,9 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.black87),
+            icon: Icon(Icons.search, color: Colors.white),
             onPressed: () {
-              // 搜索功能
+              // Search functionality
             },
           ),
         ],
@@ -80,13 +80,13 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
           _buildLeaderboardTab(),
         ],
       ),
-      floatingActionButton: authService.isLoggedIn ? FloatingActionButton(
+      floatingActionButton: FloatingActionButton(
         onPressed: () {
           _showCreatePostDialog(context);
         },
-        backgroundColor: Colors.green,
-        child: const Icon(Icons.add),
-      ) : null,
+        backgroundColor: Colors.amber,
+        child: Icon(Icons.add, color: Colors.white),
+      ),
     );
   }
 
@@ -233,7 +233,8 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                   scrollDirection: Axis.horizontal,
                   itemCount: posts.length,
                   itemBuilder: (context, index) {
-                    final post = posts[index];
+                    final post = Map<String, dynamic>.from(posts[index]);
+                    post['index'] = index;  // Add index to the post
                     return _buildPopularPostCard(post);
                   },
                 );
@@ -246,6 +247,15 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
   }
 
   Widget _buildPopularPostCard(Map<String, dynamic> post) {
+    final List<Color> cardColors = [
+      Color(0xFFF8E6E0),  // soft pink
+      Color(0xFFE0F4E0),  // soft green
+      Color(0xFFE0E6F8),  // soft blue
+    ];
+    
+    final int index = post['index'] ?? 0;
+    final Color cardColor = cardColors[index % cardColors.length];
+
     final String postId = post['id'] ?? '';
     String title = post['title'] ?? 'Untitled';
     int likes = post['likes'] ?? 0;
@@ -255,76 +265,63 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
     if (title.length > 20) {
       title = '${title.substring(0, 20)}...';
     }
-    
+
     return GestureDetector(
       onTap: () {
         _showPostDetailDialog(context, postId);
       },
       child: Container(
-        width: 150,
-        height: 160,
-        margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          color: Colors.green.shade50,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // Title and likes at top
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.favorite, color: Colors.red.shade400, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$likes',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+        margin: EdgeInsets.symmetric(horizontal: 8.0),
+        width: 280,
+        child: Card(
+          color: cardColor,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.favorite, color: Colors.red, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$likes',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.grey[800],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            
-            // Author information at bottom
-            Positioned(
-              left: 12,
-              bottom: 12,
-              child: Text(
-                'By $authorName',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
+                  ],
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.grey[900],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'By $authorName',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

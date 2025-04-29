@@ -21,6 +21,7 @@ import 'services/community_service.dart';
 import 'services/post_dialog_service.dart';
 import 'services/supabase_service.dart';
 import 'services/favorites_service.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,12 +35,12 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
 
-  // 初始化Firebase
+  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // 初始化Supabase
+  // Initialize Supabase
   await SupabaseService().initialize();
 
   runApp(const MyApp());
@@ -59,12 +60,10 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => FavoritesService()),
       ],
       child: MaterialApp(
-        title: '姿势教练',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          visualDensity: VisualDensity.adaptivePlatformDensity,
-          fontFamily: 'NotoSansSC',
-        ),
+        title: 'Pose Coach',
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.light,
         home: const SplashPage(),
         routes: {
           '/onboarding': (context) => const OnboardingPage(),
@@ -140,7 +139,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Get tab index from route arguments, if available
     final Object? args = ModalRoute.of(context)?.settings.arguments;
     if (args != null && args is int && args != _currentIndex) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -160,8 +158,10 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
             _currentIndex = index;
           });
         },
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
+        selectedItemColor: Colors.amber,
+        unselectedItemColor: Colors.grey[400],
+        backgroundColor: Colors.grey[900],
+        elevation: 8,
         items: [
           BottomNavigationBarItem(
             icon: const Icon(Icons.home),

@@ -71,8 +71,11 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('Settings'),
+        backgroundColor: Colors.amber,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: ListView(
@@ -87,6 +90,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 _notificationsEnabled = value;
               });
             },
+            activeColor: Colors.amber,
           ),
           const Divider(),
           
@@ -94,7 +98,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             title: const Text('Language'),
             subtitle: Text(_selectedLanguage),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.amber),
             onTap: () {
               _showLanguageDialog();
             },
@@ -102,7 +106,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             title: const Text('Theme'),
             subtitle: Text(_selectedTheme),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.amber),
             onTap: () {
               _showThemeDialog();
             },
@@ -116,14 +120,14 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           ListTile(
             title: const Text('Terms of Service'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.amber),
             onTap: () {
               // Show terms of service
             },
           ),
           ListTile(
             title: const Text('Privacy Policy'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.amber),
             onTap: () {
               // Show privacy policy
             },
@@ -155,23 +159,18 @@ class _SettingsPageState extends State<SettingsPage> {
                         onPressed: () {
                           Navigator.of(context).pop();
                         },
-                        child: const Text('Cancel'),
+                        child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
                       ),
                       TextButton(
                         onPressed: () async {
                           Navigator.of(context).pop();
-                          
                           final authService = Provider.of<AuthService>(context, listen: false);
                           await authService.logout();
-                          
                           if (mounted) {
-                            Navigator.of(context).pushNamedAndRemoveUntil(
-                              '/login', 
-                              (route) => false,
-                            );
+                            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
                           }
                         },
-                        child: const Text('Confirm'),
+                        child: const Text('Confirm', style: TextStyle(color: Colors.red)),
                       ),
                     ],
                   ),
@@ -180,6 +179,10 @@ class _SettingsPageState extends State<SettingsPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               child: const Text('Log Out'),
             ),
@@ -197,7 +200,7 @@ class _SettingsPageState extends State<SettingsPage> {
         style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.bold,
-          color: Colors.blue,
+          color: Colors.amber,
         ),
       ),
     );

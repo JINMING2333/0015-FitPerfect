@@ -40,8 +40,12 @@ class _RecommendedSportsPageState extends State<RecommendedSportsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('Recommended Sports'),
+        backgroundColor: Colors.amber,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.favorite),
@@ -52,11 +56,23 @@ class _RecommendedSportsPageState extends State<RecommendedSportsPage> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
+            ))
           : _exercises.isEmpty
-              ? const Center(child: Text('No recommended sports'))
+              ? Center(
+                  child: Text(
+                    'No recommended sports',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 16,
+                    ),
+                  ),
+                )
               : RefreshIndicator(
                   onRefresh: _loadExercises,
+                  color: Colors.amber,
+                  backgroundColor: Colors.white,
                   child: GridView.builder(
                     padding: const EdgeInsets.all(16),
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -229,23 +245,23 @@ class _RecommendedSportsPageState extends State<RecommendedSportsPage> {
   Color _getColorForExercise(String name) {
     switch (name.toLowerCase()) {
       case 'run':
-        return Colors.blue.shade100;
+        return Colors.blue;
       case 'stretch':
-        return Colors.purple.shade100;
+        return Colors.purple;
       case 'back_kick':
-        return Colors.red.shade100;
+        return Colors.orange;
       case 'burpee':
-        return Colors.orange.shade100;
+        return Colors.red;
       case 'fat_burning':
-        return Colors.deepOrange.shade100;
+        return Colors.amber;
       case 'jumpjump':
-        return Colors.green.shade100;
+        return Colors.green;
       case 'knee_lift':
-        return Colors.teal.shade100;
+        return Colors.teal;
       case 'twist':
-        return Colors.indigo.shade100;
+        return Colors.indigo;
       default:
-        return Colors.blue.shade100;
+        return Colors.blue;
     }
   }
 
@@ -289,12 +305,12 @@ class _RecommendedSportsPageState extends State<RecommendedSportsPage> {
   }
 
   Color _getIntensityColor(String intensity) {
-    switch (intensity) {
-      case 'Low':
+    switch (intensity.toLowerCase()) {
+      case 'low':
         return Colors.green;
-      case 'Medium':
-        return Colors.orange;
-      case 'High':
+      case 'medium':
+        return Colors.amber;
+      case 'high':
         return Colors.red;
       default:
         return Colors.blue;
