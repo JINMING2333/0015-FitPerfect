@@ -6,7 +6,13 @@ It uses the mobile phone camera to perceive the environment, and uses the human 
 
 Through this system, users can exercise independently at home, and the system plays the role of "AI coach", prompting irregular movements in real time and guiding users to improve.
 
-## Storyboard 
+<div align="center">
+  <img src="./images/storyboard.png" alt="storyboard" width="800"/>
+  <p>Storyboard</p>
+</div>
+
+## Landing Page 
+[点击查看 Landing Page 页面](./index.html) 
 
 ## Landing Page 
 
