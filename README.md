@@ -12,21 +12,29 @@ Through this system, users can exercise independently at home, and the system pl
 </div>
 
 ## Landing Page 
-[点击查看 Landing Page 页面](./index.html) 
+[Click here to see Landing Page](https://jinming2333.github.io/0015-FitPerfect/)
 
-## Landing Page 
-
-Use this section to show us what your Mobile App is about.   Include a Screenshot to the App, link to the various frameworks you've used. Include your presentation video here that shows off your Mobile App.   Emojis are also fun to include 📱 😄
-![first_version_UIdesign](images/first_version_UI.png)
+## Screens
+<div align="center">
+  <img src="./images/screens.png" alt="screens" width="800"/>
+  <p>Screens</p>
+</div> 
 
 ## Video Instruction
+[Click here to see Video](https://youtube.com/shorts/Q8AwVCKNhBY?feature=share)
 
 ## How To Install The App
 
-Include a section that gives intructions on how to install the app or run it in Flutter.  What versions of the plugins are you assuming?  Maybe define a licence
+Due to some plugin version conflicts, we are currently unable to provide a pre-built `.apk` file under the "Releases" section. Therefore, to install and run this app on your mobile device, please follow these steps:
 
-##  Contact Details
+1. **Clone this GitHub repository** to your local machine.
+2. **Connect your Android device** via USB and ensure that USB debugging is enabled.
+3. Make sure you have **Flutter installed and properly configured** on your system.
+4. Navigate to the project directory in your terminal and run: 
+    flutter pub get  
+    flutter run
 
-Having Contact Details is also good as it shows people how to get in contact with you if they'd like to contribute to the app. 
+This will build and install the app directly onto your connected device.
 
+> Note: This project uses Flutter with ML Kit. Make sure your environment supports these dependencies. You can check `pubspec.yaml` for the specific plugin versions being used.
 
