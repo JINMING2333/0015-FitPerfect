@@ -13,6 +13,35 @@ class BreakthroughModePage extends StatefulWidget {
 }
 
 class _BreakthroughModePageState extends State<BreakthroughModePage> {
+  // Text Styles
+  static const TextStyle _titleStyle = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    color: Colors.black87,
+    letterSpacing: 0.5,
+  );
+  
+  static const TextStyle _sectionHeaderStyle = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    color: Colors.black87,
+    letterSpacing: 0.3,
+  );
+  
+  static const TextStyle _bodyTextStyle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.normal,
+    color: Colors.black87,
+    letterSpacing: 0.2,
+  );
+  
+  static const TextStyle _smallTextStyle = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.normal,
+    color: Colors.black87,
+    letterSpacing: 0.1,
+  );
+
   // 总关卡数
   final int _totalLevels = 9;
   
@@ -69,9 +98,9 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
 
   @override
   Widget build(BuildContext context) {
-    // 从路由参数中获取selectedSport
-    final Object? routeArgs = ModalRoute.of(context)?.settings.arguments;
-    final String? sportName = routeArgs is String ? routeArgs : widget.selectedSport;
+    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final String exerciseId = args['exerciseId'];
+    final String name = args['name'];
     
     return Scaffold(
       body: Container(
@@ -85,7 +114,7 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(sportName),
+              _buildHeader(name),
               SizedBox(height: 20),
               _buildProgressBar(),
               SizedBox(height: 20),
@@ -111,16 +140,12 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
           ),
           Expanded(
             child: Text(
-              sportName != null ? '${sportName} Breakthrough Mode' : 'Breakthrough Mode',
+              sportName != null ? '$sportName Breakthrough Mode' : 'Breakthrough Mode',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+              style: _titleStyle,
             ),
           ),
-          SizedBox(width: 48), // 保持标题居中的平衡
+          SizedBox(width: 48),
         ],
       ),
     );
@@ -136,11 +161,7 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
             padding: const EdgeInsets.only(left: 8, bottom: 8),
             child: Text(
               'Your Progress',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+              style: _sectionHeaderStyle,
             ),
           ),
           Container(
@@ -159,7 +180,6 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
             ),
             child: Row(
               children: [
-                // 猫咪图标
                 Container(
                   width: 40,
                   height: 40,
@@ -175,10 +195,7 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
                     ),
                   ),
                 ),
-                
                 SizedBox(width: 16),
-                
-                // 进度条和文字
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,16 +206,11 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
                         children: [
                           Text(
                             'Level $_currentProgress completed',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
-                            ),
+                            style: _bodyTextStyle,
                           ),
                           Text(
                             '$_currentProgress/$_totalLevels',
-                            style: TextStyle(
-                              fontSize: 14,
+                            style: _bodyTextStyle.copyWith(
                               fontWeight: FontWeight.w600,
                               color: Colors.green,
                             ),
@@ -208,7 +220,6 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
                       SizedBox(height: 8),
                       Stack(
                         children: [
-                          // 背景条
                           Container(
                             height: 8,
                             decoration: BoxDecoration(
@@ -216,7 +227,6 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
-                          // 进度
                           FractionallySizedBox(
                             widthFactor: _currentProgress / _totalLevels,
                             child: Container(
@@ -257,23 +267,30 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
             padding: const EdgeInsets.only(left: 8, bottom: 12),
             child: Text(
               'Challenge Levels',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+              style: _sectionHeaderStyle,
             ),
           ),
           Expanded(
-            child: GridView.count(
-              crossAxisCount: 3,
-              mainAxisSpacing: 20,
-              crossAxisSpacing: 20,
-              childAspectRatio: 0.85,
-              children: List.generate(
-                _levels.length,
-                (index) => _buildLevelItem(_levels[index]),
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // 计算合适的网格项尺寸和间距
+                final width = constraints.maxWidth;
+                final itemWidth = (width - 40 - 40) / 3; // 减去左右padding和两个间距
+                final aspectRatio = itemWidth / (itemWidth + 20); // 根据宽度调整高度比例
+                
+                return GridView.count(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: aspectRatio,
+                  padding: EdgeInsets.zero,
+                  physics: const BouncingScrollPhysics(),
+                  children: List.generate(
+                    _levels.length,
+                    (index) => _buildLevelItem(_levels[index]),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -294,12 +311,12 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
         statusText = 'Completed';
         icon = Image.asset(
           'assets/images/sunflower.png',
-          width: 50,
-          height: 50,
+          width: 40, // 减小图标尺寸
+          height: 40,
           errorBuilder: (context, error, stackTrace) => Icon(
             Icons.local_florist,
             color: Colors.yellow,
-            size: 50,
+            size: 40,
           ),
         );
         break;
@@ -308,8 +325,8 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
         borderColor = Colors.amber;
         statusText = 'In Challenge';
         icon = Container(
-          width: 50,
-          height: 50,
+          width: 40, // 减小图标尺寸
+          height: 40,
           decoration: BoxDecoration(
             color: Colors.amber,
             shape: BoxShape.circle,
@@ -318,19 +335,19 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
             child: Icon(
               Icons.pets,
               color: Colors.white,
-              size: 30,
+              size: 24,
             ),
           ),
         );
         break;
       case LevelState.locked:
-        backgroundColor = Color(0xFFF5F5DC); // 米白色
+        backgroundColor = Color(0xFFF5F5DC);
         borderColor = Colors.grey.shade400;
         statusText = 'Locked';
         icon = Icon(
           Icons.lock,
           color: Colors.grey.shade500,
-          size: 40,
+          size: 32, // 减小图标尺寸
         );
         break;
     }
@@ -340,12 +357,12 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
       child: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: borderColor, width: 2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
-              blurRadius: 5,
+              blurRadius: 4,
               offset: Offset(0, 2),
             ),
           ],
@@ -353,10 +370,9 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 关卡号
             Container(
-              width: 30,
-              height: 30,
+              width: 24,
+              height: 24,
               decoration: BoxDecoration(
                 color: level.state == LevelState.locked 
                     ? Colors.grey.shade300
@@ -366,29 +382,21 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
               child: Center(
                 child: Text(
                   '${level.number}',
-                  style: TextStyle(
+                  style: _smallTextStyle.copyWith(
                     color: level.state == LevelState.locked 
                         ? Colors.grey.shade700
                         : Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
                   ),
                 ),
               ),
             ),
-            
-            SizedBox(height: 12),
-            
-            // 图标
+            SizedBox(height: 8),
             icon,
-            
-            SizedBox(height: 12),
-            
-            // 状态文本
+            SizedBox(height: 8),
             Text(
               statusText,
-              style: TextStyle(
-                fontSize: 12,
+              style: _smallTextStyle.copyWith(
                 fontWeight: FontWeight.w500,
                 color: level.state == LevelState.locked 
                     ? Colors.grey.shade600
@@ -409,7 +417,6 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
         child: ElevatedButton(
           onPressed: () {
             if (_levels.any((level) => level.state == LevelState.current)) {
-              // 找到当前挑战的关卡
               LevelData currentLevel = _levels.firstWhere(
                 (level) => level.state == LevelState.current
               );
@@ -426,8 +433,7 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
           ),
           child: Text(
             'Continue to Current Challenge',
-            style: TextStyle(
-              fontSize: 16,
+            style: _bodyTextStyle.copyWith(
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
@@ -460,21 +466,31 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
   }
 
   void _showCompletedLevelDialog(LevelData level) {
-    final Object? routeArgs = ModalRoute.of(context)?.settings.arguments;
-    final String? sportName = routeArgs is String ? routeArgs : widget.selectedSport;
+    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final String exerciseId = args['exerciseId'];
+    final String name = args['name'];
     
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Level ${level.number} - Completed'),
+          title: Text(
+            'Level ${level.number} - Completed',
+            style: _sectionHeaderStyle,
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Congratulations! You\'ve completed this level successfully.'),
+              Text(
+                'Congratulations! You\'ve completed this level successfully.',
+                style: _bodyTextStyle,
+              ),
               SizedBox(height: 16),
-              Text('Error Summary:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                'Error Summary:',
+                style: _bodyTextStyle.copyWith(fontWeight: FontWeight.bold),
+              ),
               SizedBox(height: 8),
               _buildMistakeItem('Posture Angle', 'Right arm angle was 15° off'),
               _buildMistakeItem('Stability', 'Minor wobbling on support leg'),
@@ -484,7 +500,10 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Close'),
+              child: Text(
+                'Close',
+                style: _bodyTextStyle,
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -492,13 +511,20 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
                 Navigator.pushNamed(
                   context,
                   '/pose_compare',
-                  arguments: _getExerciseId(sportName ?? ''),
+                  arguments: {
+                    'exerciseId': exerciseId,
+                    'name': name,
+                    'level': level.number,
+                  },
                 );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
               ),
-              child: Text('Try Again'),
+              child: Text(
+                'Try Again',
+                style: _bodyTextStyle.copyWith(color: Colors.white),
+              ),
             ),
           ],
           shape: RoundedRectangleBorder(
@@ -510,8 +536,9 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
   }
 
   void _showCurrentLevelDialog(LevelData level) {
-    final Object? routeArgs = ModalRoute.of(context)?.settings.arguments;
-    final String? sportName = routeArgs is String ? routeArgs : widget.selectedSport;
+    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final String exerciseId = args['exerciseId'];
+    final String name = args['name'];
     
     showDialog(
       context: context,
@@ -541,7 +568,11 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
                 Navigator.pushNamed(
                   context,
                   '/pose_compare',
-                  arguments: _getExerciseId(sportName ?? ''),
+                  arguments: {
+                    'exerciseId': exerciseId,
+                    'name': name,
+                    'level': level.number,
+                  },
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -566,9 +597,24 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
       case 'stretch':
         return 'stretch';
       case 'back kick':
+      case 'back_kick':
         return 'back_kick';
+      case 'burpee':
+        return 'burpee';
+      case 'fat burning':
+      case 'fat_burning':
+        return 'fat_burning';
+      case 'jump jump':
+      case 'jumpjump':
+        return 'jumpjump';
+      case 'knee lift':
+      case 'knee_lift':
+        return 'knee_lift';
+      case 'twist':
+        return 'twist';
       default:
-        return 'run'; // 默认返回run
+        debugPrint('Warning: Unknown exercise type: $sportName');
+        return sportName.toLowerCase().replaceAll(' ', '_');
     }
   }
 
@@ -586,11 +632,11 @@ class _BreakthroughModePageState extends State<BreakthroughModePage> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: _smallTextStyle.copyWith(fontWeight: FontWeight.bold),
                 ),
                 Text(
                   description,
-                  style: TextStyle(fontSize: 12),
+                  style: _smallTextStyle,
                 ),
               ],
             ),

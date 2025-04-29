@@ -9,16 +9,16 @@ class FavoritesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('我的收藏'),
+        title: const Text('My Favorites'),
       ),
       body: Consumer<FavoritesService>(
         builder: (context, favoritesService, child) {
-          final favorites = favoritesService.favorites;
+          final favorites = favoritesService.favorites.where((id) => _getSportItemById(id) != null);
           
           if (favorites.isEmpty) {
             return const Center(
               child: Text(
-                '还没有收藏任何运动\n快去发现你喜欢的运动吧！',
+                'No favorites yet\nDiscover your favorite sports!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
@@ -39,9 +39,8 @@ class FavoritesPage extends StatelessWidget {
             itemCount: favorites.length,
             itemBuilder: (context, index) {
               final exerciseId = favorites.elementAt(index);
-              // 根据exerciseId获取运动信息
               final sportItem = _getSportItemById(exerciseId);
-              
+              if (sportItem == null) return const SizedBox.shrink();
               return _buildSportCard(context, sportItem, favoritesService);
             },
           );
@@ -50,12 +49,12 @@ class FavoritesPage extends StatelessWidget {
     );
   }
 
-  SportItem _getSportItemById(String id) {
+  SportItem? _getSportItemById(String id) {
     // 这里硬编码运动信息，实际应用中应该从数据库或服务中获取
     final Map<String, SportItem> items = {
       'run': SportItem(
         name: 'Run',
-        intensity: 'Low',
+        intensity: 'Medium',
         duration: 10,
         iconPath: 'assets/images/yoga_icon.png',
         color: Colors.blue.shade100,
@@ -63,7 +62,7 @@ class FavoritesPage extends StatelessWidget {
       ),
       'stretch': SportItem(
         name: 'Stretch',
-        intensity: 'Medium',
+        intensity: 'Low',
         duration: 15,
         iconPath: 'assets/images/toning_icon.png',
         color: Colors.purple.shade100,
@@ -71,15 +70,59 @@ class FavoritesPage extends StatelessWidget {
       ),
       'back_kick': SportItem(
         name: 'Back Kick',
-        intensity: 'High',
+        intensity: 'Low',
         duration: 12,
         iconPath: 'assets/images/fat_burn_icon.png',
         color: Colors.red.shade100,
         exerciseId: 'back_kick',
       ),
+      'burpee': SportItem(
+        name: 'Burpee',
+        intensity: 'High',
+        duration: 20,
+        iconPath: 'assets/images/burpee_icon.png',
+        color: Colors.orange.shade100,
+        exerciseId: 'burpee',
+      ),
+      'fat_burning': SportItem(
+        name: 'Fat Burning',
+        intensity: 'High',
+        duration: 25,
+        iconPath: 'assets/images/fat_burning_icon.png',
+        color: Colors.deepOrange.shade100,
+        exerciseId: 'fat_burning',
+      ),
+      'jumpjump': SportItem(
+        name: 'Jump Jump',
+        intensity: 'Medium',
+        duration: 15,
+        iconPath: 'assets/images/jumpjump_icon.png',
+        color: Colors.green.shade100,
+        exerciseId: 'jumpjump',
+      ),
+      'knee_lift': SportItem(
+        name: 'Knee Lift',
+        intensity: 'Medium',
+        duration: 12,
+        iconPath: 'assets/images/knee_lift_icon.png',
+        color: Colors.teal.shade100,
+        exerciseId: 'knee_lift',
+      ),
+      'twist': SportItem(
+        name: 'Twist',
+        intensity: 'Low',
+        duration: 10,
+        iconPath: 'assets/images/twist_icon.png',
+        color: Colors.indigo.shade100,
+        exerciseId: 'twist',
+      ),
     };
     
-    return items[id] ?? items['run']!;
+    if (!items.containsKey(id)) {
+      debugPrint('Warning: Unknown exercise ID: $id');
+      return null;
+    }
+    return items[id];
   }
 
   Widget _buildSportCard(BuildContext context, SportItem item, FavoritesService favoritesService) {
@@ -103,7 +146,10 @@ class FavoritesPage extends StatelessWidget {
         Navigator.pushNamed(
           context,
           '/breakthrough_mode',
-          arguments: item.name,
+          arguments: {
+            'exerciseId': item.exerciseId,
+            'name': item.name,
+          },
         );
       },
       child: Card(
@@ -189,17 +235,37 @@ class FavoritesPage extends StatelessWidget {
   Widget _getSportIcon(String sportName) {
     IconData iconData;
     
-    switch (sportName) {
-      case 'Run':
+    switch (sportName.toLowerCase()) {
+      case 'run':
         iconData = Icons.directions_run;
         break;
-      case 'Stretch':
+      case 'stretch':
         iconData = Icons.self_improvement;
         break;
-      case 'Back Kick':
+      case 'back kick':
+      case 'back_kick':
         iconData = Icons.sports_martial_arts;
         break;
+      case 'burpee':
+        iconData = Icons.fitness_center;
+        break;
+      case 'fat burning':
+      case 'fat_burning':
+        iconData = Icons.local_fire_department;
+        break;
+      case 'jump jump':
+      case 'jumpjump':
+        iconData = Icons.directions_walk;
+        break;
+      case 'knee lift':
+      case 'knee_lift':
+        iconData = Icons.accessibility_new;
+        break;
+      case 'twist':
+        iconData = Icons.rotate_right;
+        break;
       default:
+        debugPrint('Warning: Unknown sport name: $sportName');
         iconData = Icons.sports;
     }
     

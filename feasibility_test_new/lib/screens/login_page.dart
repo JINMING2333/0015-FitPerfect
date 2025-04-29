@@ -31,7 +31,7 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (success && mounted) {
-        // 登录成功，导航到主页的推荐运动页面
+        // Login successful, navigate to home page's recommended exercise screen
         Navigator.of(context).pushReplacementNamed('/home', arguments: 0);
       }
     }
@@ -40,7 +40,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _resetPassword() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入邮箱地址')),
+        const SnackBar(content: Text('Please enter your email address')),
       );
       return;
     }
@@ -50,7 +50,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('密码重置邮件已发送，请查收')),
+        const SnackBar(content: Text('Password reset email has been sent')),
       );
     }
   }
@@ -61,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('登录'),
+        title: const Text('Login'),
         elevation: 0,
       ),
       body: Center(
@@ -83,7 +83,7 @@ class _LoginPageState extends State<LoginPage> {
                 
                 // App Name
                 Text(
-                  '姿势教练',
+                  'Pose Coach',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
@@ -93,7 +93,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 48),
                 
-                // 错误提示
+                // Error message
                 if (authService.errorMessage != null)
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -110,21 +110,21 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 
-                // 邮箱输入框
+                // Email input
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(
-                    labelText: '邮箱',
+                    labelText: 'Email',
                     prefixIcon: Icon(Icons.email),
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return '请输入邮箱';
+                      return 'Please enter your email';
                     }
                     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                      return '请输入有效的邮箱地址';
+                      return 'Please enter a valid email address';
                     }
                     return null;
                   },
@@ -132,39 +132,39 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 16),
                 
-                // 密码输入框
+                // Password input
                 TextFormField(
                   controller: _passwordController,
                   decoration: const InputDecoration(
-                    labelText: '密码',
+                    labelText: 'Password',
                     prefixIcon: Icon(Icons.lock),
                     border: OutlineInputBorder(),
                   ),
                   obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return '请输入密码';
+                      return 'Please enter your password';
                     }
                     if (value.length < 6) {
-                      return '密码长度不能少于6位';
+                      return 'Password must be at least 6 characters';
                     }
                     return null;
                   },
                   onFieldSubmitted: (_) => _login(),
                 ),
                 
-                // 忘记密码
+                // Forgot password
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: _resetPassword,
-                    child: const Text('忘记密码?'),
+                    child: const Text('Forgot Password?'),
                   ),
                 ),
                 
                 const SizedBox(height: 24),
                 
-                // 登录按钮
+                // Login button
                 ElevatedButton(
                   onPressed: authService.isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
@@ -182,21 +182,21 @@ class _LoginPageState extends State<LoginPage> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('登录'),
+                      : const Text('Login'),
                 ),
                 const SizedBox(height: 16),
                 
-                // 注册提示
+                // Register prompt
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('还没有账号？'),
+                    const Text("Don't have an account?"),
                     TextButton(
                       onPressed: () {
-                        // 导航到注册页面
+                        // Navigate to register page
                         Navigator.of(context).pushNamed('/register');
                       },
-                      child: const Text('立即注册'),
+                      child: const Text('Register Now'),
                     ),
                   ],
                 ),

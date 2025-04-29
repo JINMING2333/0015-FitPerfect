@@ -41,7 +41,7 @@ class _RecommendedSportsPageState extends State<RecommendedSportsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('推荐运动'),
+        title: const Text('Recommended Sports'),
         actions: [
           IconButton(
             icon: const Icon(Icons.favorite),
@@ -54,20 +54,24 @@ class _RecommendedSportsPageState extends State<RecommendedSportsPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _exercises.isEmpty
-              ? const Center(child: Text('暂无推荐运动'))
-              : GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.85,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
+              ? const Center(child: Text('No recommended sports'))
+              : RefreshIndicator(
+                  onRefresh: _loadExercises,
+                  child: GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.85,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: _exercises.length,
+                    itemBuilder: (context, index) {
+                      final exercise = _exercises[index];
+                      return _buildExerciseCard(context, exercise);
+                    },
                   ),
-                  itemCount: _exercises.length,
-                  itemBuilder: (context, index) {
-                    final exercise = _exercises[index];
-                    return _buildExerciseCard(context, exercise);
-                  },
                 ),
     );
   }
@@ -88,7 +92,10 @@ class _RecommendedSportsPageState extends State<RecommendedSportsPage> {
             Navigator.pushNamed(
               context,
               '/breakthrough_mode',
-              arguments: name,
+              arguments: {
+                'exerciseId': exerciseId,
+                'name': name,
+              },
             );
           },
           child: Card(
@@ -175,12 +182,22 @@ class _RecommendedSportsPageState extends State<RecommendedSportsPage> {
 
   String _getIntensityForExercise(String name) {
     switch (name.toLowerCase()) {
-      case 'run':
+      case 'back_kick':
         return 'Low';
       case 'stretch':
-        return 'Medium';
-      case 'back kick':
+        return 'Low';
+      case 'twist':
+        return 'Low';
+      case 'burpee':
         return 'High';
+      case 'fat_burning':
+        return 'High';
+      case 'run':
+        return 'Medium';
+      case 'jumpjump':
+        return 'Medium';
+      case 'knee_lift':
+        return 'Medium';
       default:
         return 'Medium';
     }
@@ -192,8 +209,18 @@ class _RecommendedSportsPageState extends State<RecommendedSportsPage> {
         return 10;
       case 'stretch':
         return 15;
-      case 'back kick':
+      case 'back_kick':
         return 12;
+      case 'burpee':
+        return 20;
+      case 'fat_burning':
+        return 25;
+      case 'jumpjump':
+        return 15;
+      case 'knee_lift':
+        return 12;
+      case 'twist':
+        return 10;
       default:
         return 10;
     }
@@ -202,13 +229,23 @@ class _RecommendedSportsPageState extends State<RecommendedSportsPage> {
   Color _getColorForExercise(String name) {
     switch (name.toLowerCase()) {
       case 'run':
-        return Colors.blue;
+        return Colors.blue.shade100;
       case 'stretch':
-        return Colors.purple;
-      case 'back kick':
-        return Colors.red;
+        return Colors.purple.shade100;
+      case 'back_kick':
+        return Colors.red.shade100;
+      case 'burpee':
+        return Colors.orange.shade100;
+      case 'fat_burning':
+        return Colors.deepOrange.shade100;
+      case 'jumpjump':
+        return Colors.green.shade100;
+      case 'knee_lift':
+        return Colors.teal.shade100;
+      case 'twist':
+        return Colors.indigo.shade100;
       default:
-        return Colors.blue;
+        return Colors.blue.shade100;
     }
   }
 
@@ -222,8 +259,23 @@ class _RecommendedSportsPageState extends State<RecommendedSportsPage> {
       case 'stretch':
         iconData = Icons.self_improvement;
         break;
-      case 'back kick':
+      case 'back_kick':
         iconData = Icons.sports_martial_arts;
+        break;
+      case 'burpee':
+        iconData = Icons.fitness_center;
+        break;
+      case 'fat_burning':
+        iconData = Icons.local_fire_department;
+        break;
+      case 'jumpjump':
+        iconData = Icons.directions_walk;
+        break;
+      case 'knee_lift':
+        iconData = Icons.accessibility_new;
+        break;
+      case 'twist':
+        iconData = Icons.rotate_right;
         break;
       default:
         iconData = Icons.sports;

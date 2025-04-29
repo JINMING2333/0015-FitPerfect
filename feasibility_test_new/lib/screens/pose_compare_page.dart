@@ -14,12 +14,23 @@ import '../models/exercise.dart';
 import '../services/supabase_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/exercise_data_service.dart';
+import '../services/exercise_history_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 late List<CameraDescription> cameras;
 
 class PoseComparePage extends StatefulWidget {
   final String? exerciseId;
-  const PoseComparePage({Key? key, this.exerciseId}) : super(key: key);
+  final String? name;
+  final int? level;
+  
+  const PoseComparePage({
+    Key? key, 
+    this.exerciseId,
+    this.name,
+    this.level,
+  }) : super(key: key);
 
   @override
   State<PoseComparePage> createState() => _PoseComparePageState();
@@ -32,6 +43,15 @@ class _PoseComparePageState extends State<PoseComparePage> {
   bool _initialized = false;
   bool _showStandardPose = true;
   Exercise? _currentExercise;
+  final SupabaseService _supabase = SupabaseService();
+  final ExerciseDataService _exerciseDataService = ExerciseDataService();
+  final ExerciseHistoryService _exerciseHistoryService = ExerciseHistoryService();
+  
+  // 添加缺失的变量
+  int _trainingDuration = 0;  // 训练时长（秒）
+  String? _capturedImagePath;  // 捕获的图像路径
+  DateTime? _startTime;  // 训练开始时间
+  bool _hasStartedExercise = false;  // 添加标记，记录是否开始运动
 
   final _poseDetector = PoseDetector(
     options: PoseDetectorOptions(mode: PoseDetectionMode.stream),
@@ -46,19 +66,24 @@ class _PoseComparePageState extends State<PoseComparePage> {
   @override
   void initState() {
     super.initState();
+    _startTime = DateTime.now();  // 记录开始时间
     Future.microtask(_loadResources);
+    
+    // 添加视频完成监听
+    _videoController?.addListener(_onVideoProgress);
   }
 
   Future<void> _loadResources() async {
     try {
-      final supabase = SupabaseService();
-      
       // 1. 获取练习数据
       if (widget.exerciseId != null) {
-        final exercises = await supabase.getExercises();
-        _currentExercise = Exercise.fromJson(
-          exercises.firstWhere((e) => e['id'] == widget.exerciseId)
+        final exercises = await _supabase.getExercises();
+        final exerciseData = exercises.firstWhere(
+          (e) => e['id'] == widget.exerciseId,
+          orElse: () => throw Exception('Exercise not found: ${widget.exerciseId}'),
         );
+        _currentExercise = Exercise.fromJson(exerciseData);
+        debugPrint('加载运动: ${_currentExercise?.name}');
       }
 
       if (_currentExercise == null) {
@@ -67,7 +92,7 @@ class _PoseComparePageState extends State<PoseComparePage> {
 
       // 2. 加载JSON文件
       debugPrint('开始加载JSON文件: ${_currentExercise!.jsonUrl}');
-      final jsonContent = await supabase.getJsonContent(_currentExercise!.jsonUrl);
+      final jsonContent = await _supabase.getJsonContent(_currentExercise!.jsonUrl);
       final jsonData = json.decode(jsonContent);
       _standardPoses = StandardPose.fromJsonList(jsonData);
       debugPrint('成功加载标准姿势数据，数量: ${_standardPoses.length}');
@@ -90,15 +115,15 @@ class _PoseComparePageState extends State<PoseComparePage> {
       await _cameraController!.startImageStream(_processCameraImage);
 
       // 4. 初始化视频
-      final videoUrl = await supabase.getVideoUrl(_currentExercise!.videoUrl);
+      final videoUrl = await _supabase.getVideoUrl(_currentExercise!.videoUrl);
+      debugPrint('加载视频: $videoUrl');
       _videoController = VideoPlayerController.network(videoUrl);
       await _videoController!.initialize();
-      _videoController!.setLooping(true);
       _videoController!.addListener(() {
         if (mounted) setState(() {});
       });
-    } catch (e) {
-      debugPrint('🔴 资源加载失败: $e');
+    } catch (e, st) {
+      debugPrint('🔴 资源加载失败: $e\n$st');
     } finally {
       if (mounted) setState(() => _initialized = true);
     }
@@ -273,10 +298,10 @@ class _PoseComparePageState extends State<PoseComparePage> {
         : _standardPoses[left];
   }
   
-  /// 计算用户姿势与标准姿势的匹配度（0-100分）
+  /// 计算用户姿势与标准姿势的匹配度（50-100分）
   double _calculateMatchScore(Pose userPose, StandardPose standardPose) {
     if (_cameraController == null || _cameraController!.value.previewSize == null) {
-      return 0.0;
+      return 50.0;
     }
     
     // 获取相机预览尺寸
@@ -289,45 +314,61 @@ class _PoseComparePageState extends State<PoseComparePage> {
     // 定义关键点及其权重 - 设置了更精细的权重分配
     final keyPoints = {
       // 上半身核心部位（权重更高）
-      PoseLandmarkType.leftShoulder: 1.2,
-      PoseLandmarkType.rightShoulder: 1.2,
-      PoseLandmarkType.leftElbow: 1.0,
-      PoseLandmarkType.rightElbow: 1.0,
-      PoseLandmarkType.leftWrist: 0.8,
-      PoseLandmarkType.rightWrist: 0.8,
+      PoseLandmarkType.leftShoulder: 2.0,
+      PoseLandmarkType.rightShoulder: 2.0,
+      PoseLandmarkType.leftElbow: 1.8,
+      PoseLandmarkType.rightElbow: 1.8,
+      PoseLandmarkType.leftWrist: 1.5,
+      PoseLandmarkType.rightWrist: 1.5,
       
       // 躯干（中等权重）
-      PoseLandmarkType.leftHip: 1.0,
-      PoseLandmarkType.rightHip: 1.0,
+      PoseLandmarkType.leftHip: 1.5,
+      PoseLandmarkType.rightHip: 1.5,
       
       // 下半身（权重稍低，因为在很多动作中下半身可能不是焦点）
-      PoseLandmarkType.leftKnee: 0.7,
-      PoseLandmarkType.rightKnee: 0.7,
-      PoseLandmarkType.leftAnkle: 0.5,
-      PoseLandmarkType.rightAnkle: 0.5,
+      PoseLandmarkType.leftKnee: 1.2,
+      PoseLandmarkType.rightKnee: 1.2,
+      PoseLandmarkType.leftAnkle: 1.0,
+      PoseLandmarkType.rightAnkle: 1.0,
     };
     
     // 使用PoseNormalizer归一化用户姿势
     final normalizedUserPose = PoseNormalizer.normalizeUserPose(userPose, imageSize);
     
     // 计算姿势相似度
-    final score = PoseNormalizer.calculatePoseSimilarity(
+    double score = PoseNormalizer.calculatePoseSimilarity(
       normalizedUserPose, 
       standardPose.landmarks, 
       keyPoints
     );
     
+    // 将原始相似度（0-100）映射到更合理的分数范围（50-100）
+    score = 50.0 + (score * 0.5);  // 将原始分数(0-100)映射到50-100区间
+    score = score.clamp(50.0, 100.0); // 确保分数在50-100之间
+    
     // 输出详细信息
-    debugPrint('姿势匹配详细得分: $score');
+    debugPrint('原始相似度: $score');
+    debugPrint('最终得分: $score');
     
     return score;
   }
 
   @override
   void dispose() {
+    _videoController?.removeListener(_onVideoProgress);
     _cameraController?.dispose();
     _videoController?.dispose();
     _poseDetector.close();
+    
+    // 如果已经开始运动，则在退出时保存记录
+    if (_hasStartedExercise && _startTime != null) {
+      _trainingDuration = DateTime.now().difference(_startTime!).inSeconds;
+      // 确保运动时长至少为1秒
+      if (_trainingDuration > 0) {
+        _onExerciseComplete();
+      }
+    }
+    
     super.dispose();
   }
 
@@ -339,33 +380,27 @@ class _PoseComparePageState extends State<PoseComparePage> {
         _videoController == null ||
         !_videoController!.value.isInitialized ||
         _standardPoses.isEmpty) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(widget.name != null ? '${widget.name} - Level ${widget.level}' : 'Pose 比对'),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    // 获取预览尺寸，如果无法获取则使用默认值
-    final previewSize = _cameraController?.value.previewSize;
-    final imageSize = Size(
-      previewSize?.height ?? 640.0,  // 旋转90度后宽度是原高度
-      previewSize?.width ?? 480.0,   // 旋转90度后高度是原宽度
-    );
-
-    debugPrint('\n===== 标准姿势数据 =====');
-    final currentPose = _getStandardPose();
-    final posMs = _videoController!.value.position.inMilliseconds;
-    final totalMs = _videoController!.value.duration.inMilliseconds;
-    final totalPoseCount = _standardPoses.length;
-    final currentPoseIdx = _standardPoses.indexOf(currentPose);
-    final currentPoseTimestampMs = (currentPose.timestamp * 1000).toInt();
-    
-    debugPrint('视频位置: ${posMs}ms / ${totalMs}ms (${(posMs / totalMs * 100).toStringAsFixed(1)}%)');
-    debugPrint('标准姿势总数: $totalPoseCount');
-    debugPrint('当前标准姿势: idx=${currentPoseIdx} (timestamp=${currentPoseTimestampMs}ms)');
-    debugPrint('时间差: ${(posMs - currentPoseTimestampMs).abs()}ms');
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Pose 比对')),
+      appBar: AppBar(
+        title: Text(widget.name != null ? '${widget.name} - Level ${widget.level}' : 'Pose 比对'),
+        actions: [
+          TextButton(
+            onPressed: () => _onExerciseComplete(),
+            child: const Text(
+              '完成',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           AspectRatio(
@@ -377,10 +412,6 @@ class _PoseComparePageState extends State<PoseComparePage> {
                 if (_userPose != null)
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      debugPrint('\n===== CustomPaint 布局信息 =====');
-                      debugPrint('CustomPaint 约束: ${constraints.toString()}');
-                      
-                      // 创建一个额外的不透明背景，帮助显示骨骼
                       return Stack(
                         children: [
                           // 半透明黑色背景，使骨骼线条更加明显
@@ -389,7 +420,7 @@ class _PoseComparePageState extends State<PoseComparePage> {
                             height: constraints.maxHeight,
                             color: Colors.black.withOpacity(0.2),
                           ),
-                          // 标准和用户姿势的对比绘制
+                          // 只绘制用户姿势的骨骼线条
                           CustomPaint(
                             size: Size(constraints.maxWidth, constraints.maxHeight),
                             painter: ComparePainter(
@@ -399,7 +430,7 @@ class _PoseComparePageState extends State<PoseComparePage> {
                                 _cameraController!.value.previewSize?.height ?? 640.0,
                                 _cameraController!.value.previewSize?.width ?? 480.0,
                               ),
-                              showStandardPose: _showStandardPose,
+                              showStandardPose: false,  // 不显示标准姿势的骨骼线条
                             ),
                           ),
                           // 检测状态灰色半透明模块，固定在左上角
@@ -417,11 +448,11 @@ class _PoseComparePageState extends State<PoseComparePage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '检测状态: ${_userPose != null ? "已检测" : "未检测"}',
+                                    'Detection Status: ${_userPose != null ? "Detected" : "Not Detected"}',
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                   if (_userPose != null) Text(
-                                    '关键点数: ${_userPose!.landmarks.length}',
+                                    'Keypoints: ${_userPose!.landmarks.length}',
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                   if (_userPose != null) Column(
@@ -429,7 +460,7 @@ class _PoseComparePageState extends State<PoseComparePage> {
                                     children: [
                                       const SizedBox(height: 5),
                                       Text(
-                                        '匹配得分: ${_matchScore.toStringAsFixed(1)}',
+                                        'Match Score: ${_matchScore.toStringAsFixed(1)}',
                                         style: TextStyle(
                                           color: _getScoreColor(_matchScore),
                                           fontWeight: FontWeight.bold,
@@ -477,7 +508,7 @@ class _PoseComparePageState extends State<PoseComparePage> {
                         borderRadius: BorderRadius.circular(5),
                       ),
                       child: Text(
-                        '标准示范: ${((_videoController!.value.position.inMilliseconds / (_videoController!.value.duration.inMilliseconds == 0 ? 1 : _videoController!.value.duration.inMilliseconds)) * 100).toStringAsFixed(1)}%',
+                        'Standard Demo: ${((_videoController!.value.position.inMilliseconds / (_videoController!.value.duration.inMilliseconds == 0 ? 1 : _videoController!.value.duration.inMilliseconds)) * 100).toStringAsFixed(1)}%',
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
@@ -498,6 +529,12 @@ class _PoseComparePageState extends State<PoseComparePage> {
                             if (_videoController!.value.isPlaying) {
                               _videoController!.pause();
                             } else {
+                              // 开始播放时标记开始运动
+                              setState(() {
+                                _hasStartedExercise = true;
+                                // 重置开始时间
+                                _startTime = DateTime.now();
+                              });
                               _videoController!.play();
                             }
                           },
@@ -505,6 +542,11 @@ class _PoseComparePageState extends State<PoseComparePage> {
                         IconButton(
                           icon: const Icon(Icons.replay, color: Colors.white),
                           onPressed: () {
+                            // 重新开始时也重置开始时间
+                            setState(() {
+                              _hasStartedExercise = true;
+                              _startTime = DateTime.now();
+                            });
                             _videoController!.seekTo(Duration.zero);
                             _videoController!.play();
                           },
@@ -523,18 +565,17 @@ class _PoseComparePageState extends State<PoseComparePage> {
   
   /// 根据分数返回不同颜色
   Color _getScoreColor(double score) {
-    if (score >= 80) return Colors.green;
-    if (score >= 60) return Colors.yellow;
-    return Colors.red;
+    if (score >= 85) return Colors.green;
+    if (score >= 70) return Colors.yellow;
+    return Colors.orange;
   }
   
   /// 根据分数返回反馈文字
   String _getScoreFeedback(double score) {
-    if (score >= 90) return "完美！动作非常准确";
-    if (score >= 80) return "很好！继续保持";
-    if (score >= 70) return "不错，还可以更精准";
-    if (score >= 60) return "尝试调整身体姿势";
-    return "请参考标准动作进行调整";
+    if (score >= 85) return "Perfect form!";
+    if (score >= 75) return "Good form";
+    if (score >= 70) return "Acceptable form";
+    return "Keep adjusting your form";
   }
 
   Widget _cameraPreview() {
@@ -576,5 +617,99 @@ class _PoseComparePageState extends State<PoseComparePage> {
         );
       },
     );
+  }
+
+  Future<void> _saveExerciseHistory({
+    required String exerciseName,
+    required double score,
+    required int duration,
+    required String level,
+    String? imageUrl,
+    Map<String, dynamic>? additionalData,
+  }) async {
+    try {
+      debugPrint('开始保存运动记录...');
+      // 保存到本地数据库
+      await _exerciseHistoryService.saveExerciseHistory(
+        exerciseId: DateTime.now().millisecondsSinceEpoch.toString(),
+        exerciseName: exerciseName,
+        duration: duration,
+        score: score,
+        imageUrl: imageUrl ?? '',
+        level: level,
+        additionalData: additionalData ?? {},
+        timestamp: DateTime.now().toIso8601String(),
+      );
+      debugPrint('✅ 本地保存成功');
+
+      // 保存到 Firebase
+      try {
+        await _exerciseDataService.saveExerciseRecord(
+          exerciseId: widget.exerciseId ?? 'unknown',
+          exerciseName: widget.name ?? 'Unknown Exercise',
+          duration: duration,
+          score: score,
+          imageUrl: imageUrl ?? '',
+          level: int.tryParse(level) ?? 1,
+          additionalData: additionalData ?? {},
+        );
+        debugPrint('✅ Firebase保存成功');
+      } catch (firebaseError) {
+        debugPrint('❌ Firebase保存失败: $firebaseError');
+        // Firebase保存失败不影响整体流程
+      }
+    } catch (e) {
+      debugPrint('❌ 保存运动记录失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('保存运动记录时出现错误')),
+        );
+      }
+    }
+  }
+
+  // 修改保存方法，使其返回Future<void>
+  Future<void> _onExerciseComplete() async {
+    if (!_hasStartedExercise) return;  // 如果没有开始运动，不保存记录
+    
+    await _saveExerciseHistory(
+      exerciseName: widget.name ?? 'Unknown Exercise',
+      score: _matchScore,
+      duration: _trainingDuration,
+      level: widget.level?.toString() ?? '标准',
+      imageUrl: _capturedImagePath,
+      additionalData: {
+        'landmarks': _userPose?.landmarks.map((k, v) => MapEntry(k.name, {
+          'x': v.x,
+          'y': v.y,
+          'z': v.z,
+        })),
+        'standard_pose': _getStandardPose().landmarks.map((k, v) => MapEntry(k.name, {
+          'x': v.x,
+          'y': v.y,
+          'z': v.z,
+        })),
+      },
+    );
+
+    if (mounted) {
+      // 显示完成提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('运动记录已保存')),
+      );
+    }
+  }
+
+  void _onVideoProgress() {
+    if (_videoController == null) return;
+    
+    // 检查视频是否播放完成
+    if (_videoController!.value.position >= _videoController!.value.duration) {
+      _onExerciseComplete();
+      // 视频播放完成后，返回上一页
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
   }
 }

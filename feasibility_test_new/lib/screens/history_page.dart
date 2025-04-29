@@ -1,9 +1,8 @@
 // lib/screens/history_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import '../services/user_data_service.dart';
+import '../services/exercise_history_service.dart';
 import '../services/auth_service.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -14,33 +13,34 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  // 选中的时间范围
-  String _selectedTimeRange = '全部';
-  List<String> _timeRanges = ['全部', '本周', '本月'];
+  // Selected time range
+  String _selectedTimeRange = 'All';
+  List<String> _timeRanges = ['All', 'This Week', 'This Month'];
   
-  // 选中的训练类型
-  String _selectedType = '全部类型';
-  List<String> _exerciseTypes = ['全部类型', '标准训练', '挑战模式', '自定义训练'];
+  // Selected exercise type
+  String _selectedType = 'All Types';
+  List<String> _exerciseTypes = ['All Types', 'Standard Training', 'Challenge Mode', 'Custom Training'];
   
-  // 选中的排序方式
-  String _sortBy = '日期';
-  List<String> _sortOptions = ['日期', '分数', '时长'];
+  // Selected sort method
+  String _sortBy = 'Date';
+  List<String> _sortOptions = ['Date', 'Score', 'Duration'];
+
+  final ExerciseHistoryService _historyService = ExerciseHistoryService();
   
   @override
   Widget build(BuildContext context) {
-    final userDataService = Provider.of<UserDataService>(context);
     final authService = Provider.of<AuthService>(context);
     
-    // 如果用户未登录，显示提示登录界面
+    // If user is not logged in, show login prompt
     if (!authService.isLoggedIn) {
       return _buildLoginPrompt();
     }
 
-    // 确定日期过滤器
+    // Determine date filter
     DateTime? startDate;
-    if (_selectedTimeRange == '本周') {
+    if (_selectedTimeRange == 'This Week') {
       startDate = DateTime.now().subtract(const Duration(days: 7));
-    } else if (_selectedTimeRange == '本月') {
+    } else if (_selectedTimeRange == 'This Month') {
       startDate = DateTime.now().subtract(const Duration(days: 30));
     }
 
@@ -48,30 +48,23 @@ class _HistoryPageState extends State<HistoryPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // 顶部标题和统计信息
-            _buildHeader(userDataService),
+            // Header title and statistics
+            _buildHeader(),
             
-            // 筛选选项
+            // Filter options
             _buildFilterBar(),
             
-            // 视觉反馈集锦
+            // Training history list
             Expanded(
-              child: _buildFeedbackGallery(userDataService, startDate),
+              child: _buildHistoryList(startDate),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showVisualizationOptions();
-        },
-        backgroundColor: Colors.green,
-        child: const Icon(Icons.insights),
-      ),
     );
   }
   
-  Widget _buildHeader(UserDataService userDataService) {
+  Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
       decoration: BoxDecoration(
@@ -91,7 +84,7 @@ class _HistoryPageState extends State<HistoryPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                '训练视觉反馈',
+                'Training History',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -101,88 +94,17 @@ class _HistoryPageState extends State<HistoryPage> {
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
                 onPressed: () {
-                  // 设置选项
+                  // Settings options
                 },
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            '集锦展示你的训练姿势和反馈',
+            'View your training records and progress',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // 统计卡片
-          FutureBuilder<Map<String, dynamic>>(
-            future: userDataService.getUserStats(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              
-              final stats = snapshot.data!;
-              final totalTrainings = stats['totalTrainings'] ?? 0;
-              final totalDuration = stats['totalDuration'] ?? 0;
-              final averageScore = stats['averageScore'] ?? 0.0;
-              
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatCard(
-                    '总次数',
-                    '$totalTrainings',
-                    Colors.blue,
-                  ),
-                  _buildStatCard(
-                    '总时长',
-                    '${totalDuration}分钟',
-                    Colors.green,
-                  ),
-                  _buildStatCard(
-                    '平均分',
-                    averageScore.toStringAsFixed(1),
-                    Colors.orange,
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildStatCard(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[700],
             ),
           ),
         ],
@@ -266,7 +188,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   ),
                   child: Row(
                     children: [
-                      const Text('排序: '),
+                      const Text('Sort: '),
                       DropdownButton<String>(
                         value: _sortBy,
                         underline: const SizedBox(),
@@ -296,9 +218,9 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
   
-  Widget _buildFeedbackGallery(UserDataService userDataService, DateTime? startDate) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: userDataService.getTrainingHistory(),
+  Widget _buildHistoryList(DateTime? startDate) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _historyService.getExerciseHistory(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -307,40 +229,39 @@ class _HistoryPageState extends State<HistoryPage> {
         if (snapshot.hasError) {
           return Center(
             child: Text(
-              '加载失败: ${snapshot.error}',
+              'Failed to load: ${snapshot.error}',
               style: const TextStyle(color: Colors.red),
             ),
           );
         }
         
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return _buildEmptyState();
         }
         
         // 获取所有训练记录
-        List<DocumentSnapshot> records = snapshot.data!.docs;
+        List<Map<String, dynamic>> records = snapshot.data!;
         
         // 筛选时间范围
         if (startDate != null) {
           records = records.where((record) {
-            Timestamp timestamp = record['timestamp'] as Timestamp;
-            return timestamp.toDate().isAfter(startDate);
+            final timestamp = DateTime.parse(record['timestamp'] as String);
+            return timestamp.isAfter(startDate);
           }).toList();
         }
         
         // 筛选训练类型
-        if (_selectedType != '全部类型') {
+        if (_selectedType != 'All Types') {
           records = records.where((record) {
-            final data = record.data() as Map<String, dynamic>;
-            final String exercise = data['exercise'] ?? '';
+            final String exerciseName = record['exerciseName'] ?? '';
             
-            if (_selectedType == '标准训练') {
-              return !exercise.toLowerCase().contains('挑战') && 
-                     !exercise.toLowerCase().contains('自定义');
-            } else if (_selectedType == '挑战模式') {
-              return exercise.toLowerCase().contains('挑战');
-            } else if (_selectedType == '自定义训练') {
-              return exercise.toLowerCase().contains('自定义');
+            if (_selectedType == 'Standard Training') {
+              return !exerciseName.toLowerCase().contains('challenge') && 
+                     !exerciseName.toLowerCase().contains('custom');
+            } else if (_selectedType == 'Challenge Mode') {
+              return exerciseName.toLowerCase().contains('challenge');
+            } else if (_selectedType == 'Custom Training') {
+              return exerciseName.toLowerCase().contains('custom');
             }
             return true;
           }).toList();
@@ -348,21 +269,18 @@ class _HistoryPageState extends State<HistoryPage> {
         
         // 应用排序
         records.sort((a, b) {
-          final dataA = a.data() as Map<String, dynamic>;
-          final dataB = b.data() as Map<String, dynamic>;
-          
-          if (_sortBy == '日期') {
-            final timeA = dataA['timestamp'] as Timestamp;
-            final timeB = dataB['timestamp'] as Timestamp;
-            return timeB.compareTo(timeA); // 降序排列，最新的在前面
-          } else if (_sortBy == '分数') {
-            final scoreA = (dataA['score'] as num?)?.toDouble() ?? 0.0;
-            final scoreB = (dataB['score'] as num?)?.toDouble() ?? 0.0;
-            return scoreB.compareTo(scoreA); // 降序排列，高分在前
-          } else if (_sortBy == '时长') {
-            final durationA = dataA['duration'] as int? ?? 0;
-            final durationB = dataB['duration'] as int? ?? 0;
-            return durationB.compareTo(durationA); // 降序排列，时长长的在前
+          if (_sortBy == 'Date') {
+            final timeA = DateTime.parse(a['timestamp'] as String);
+            final timeB = DateTime.parse(b['timestamp'] as String);
+            return timeB.compareTo(timeA);
+          } else if (_sortBy == 'Score') {
+            final scoreA = (a['score'] as num?)?.toDouble() ?? 0.0;
+            final scoreB = (b['score'] as num?)?.toDouble() ?? 0.0;
+            return scoreB.compareTo(scoreA);
+          } else if (_sortBy == 'Duration') {
+            final durationA = a['duration'] as int? ?? 0;
+            final durationB = b['duration'] as int? ?? 0;
+            return durationB.compareTo(durationA);
           }
           return 0;
         });
@@ -371,7 +289,7 @@ class _HistoryPageState extends State<HistoryPage> {
           return _buildEmptyState();
         }
         
-        // 以网格形式显示视觉反馈
+        // 以网格形式显示训练记录
         return Padding(
           padding: const EdgeInsets.all(12.0),
           child: GridView.builder(
@@ -383,7 +301,7 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
             itemCount: records.length,
             itemBuilder: (context, index) {
-              return _buildFeedbackCard(records[index]);
+              return _buildHistoryCard(records[index]);
             },
           ),
         );
@@ -391,32 +309,28 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
   
-  Widget _buildFeedbackCard(DocumentSnapshot record) {
-    final data = record.data() as Map<String, dynamic>;
-    
-    // 获取记录数据
-    final String exercise = data['exercise'] ?? '未知训练';
-    final double score = (data['score'] as num?)?.toDouble() ?? 0.0;
-    final String imageUrl = data['imageUrl'] ?? '';
-    final Timestamp timestamp = data['timestamp'] as Timestamp;
-    final DateTime date = timestamp.toDate();
+  Widget _buildHistoryCard(Map<String, dynamic> record) {
+    final String exerciseName = record['exerciseName'] ?? 'Unknown Training';
+    final double score = (record['score'] as num?)?.toDouble() ?? 0.0;
+    final String imageUrl = record['imageUrl'] ?? '';
+    final DateTime date = DateTime.parse(record['timestamp'] as String);
     final String formattedDate = DateFormat('MM-dd HH:mm').format(date);
     
     // 确定分数颜色
-    final Color scoreColor = score >= 80 
+    final Color scoreColor = score >= 85 
         ? Colors.green 
-        : (score >= 60 ? Colors.orange : Colors.red);
+        : (score >= 70 ? Colors.yellow : Colors.orange);
     
     // 确定训练图标
     IconData exerciseIcon = Icons.fitness_center;
-    if (exercise.toLowerCase().contains('挑战')) {
+    if (exerciseName.toLowerCase().contains('challenge')) {
       exerciseIcon = Icons.emoji_events;
-    } else if (exercise.toLowerCase().contains('自定义')) {
+    } else if (exerciseName.toLowerCase().contains('custom')) {
       exerciseIcon = Icons.create;
     }
     
     return InkWell(
-      onTap: () => _showFeedbackDetails(record),
+      onTap: () => _showHistoryDetails(record),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -478,7 +392,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          exercise,
+                          exerciseName,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -539,146 +453,13 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
   
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.insights,
-            size: 80,
-            color: Colors.grey[300],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '暂无训练记录',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '开始训练，记录你的姿势反馈',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.fitness_center),
-            label: const Text('开始训练'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            onPressed: () {
-              Navigator.of(context).pushNamed('/training');
-            },
-          ),
-        ],
-      ),
-    );
-  }
-  
-  void _showVisualizationOptions() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              '视觉反馈选项',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildVisualizationOption(
-              icon: Icons.grid_on,
-              title: '网格视图',
-              subtitle: '以网格形式查看训练记录',
-              onTap: () {
-                Navigator.pop(context);
-                // 切换为网格视图
-              },
-            ),
-            const Divider(),
-            _buildVisualizationOption(
-              icon: Icons.timeline,
-              title: '进度视图',
-              subtitle: '查看训练进度和改进情况',
-              onTap: () {
-                Navigator.pop(context);
-                // 切换为进度视图
-              },
-            ),
-            const Divider(),
-            _buildVisualizationOption(
-              icon: Icons.video_collection,
-              title: '动作集锦',
-              subtitle: '查看动作视频集锦',
-              onTap: () {
-                Navigator.pop(context);
-                // 切换为视频集锦视图
-              },
-            ),
-            const Divider(),
-            _buildVisualizationOption(
-              icon: Icons.compare,
-              title: '对比分析',
-              subtitle: '对比不同时间的训练效果',
-              onTap: () {
-                Navigator.pop(context);
-                // 切换为对比分析视图
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildVisualizationOption({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.green),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      onTap: onTap,
-    );
-  }
-  
-  void _showFeedbackDetails(DocumentSnapshot record) {
-    final data = record.data() as Map<String, dynamic>;
-    
-    // 获取记录数据
-    final String exercise = data['exercise'] ?? '未知训练';
-    final int duration = data['duration'] ?? 0;
-    final double score = (data['score'] as num?)?.toDouble() ?? 0.0;
-    final String imageUrl = data['imageUrl'] ?? '';
-    
-    final Timestamp timestamp = data['timestamp'] as Timestamp;
-    final DateTime date = timestamp.toDate();
+  void _showHistoryDetails(Map<String, dynamic> record) {
+    final String exerciseName = record['exerciseName'] ?? 'Unknown Training';
+    final int duration = record['duration'] as int? ?? 0;
+    final double score = (record['score'] as num?)?.toDouble() ?? 0.0;
+    final String imageUrl = record['imageUrl'] ?? '';
+    final DateTime date = DateTime.parse(record['timestamp'] as String);
     final String formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(date);
-    
-    // 改进建议
-    List<String> improvements = [];
-    if (data['improvements'] is List) {
-      improvements = List<String>.from(data['improvements']);
-    }
     
     showDialog(
       context: context,
@@ -718,7 +499,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      exercise,
+                      exerciseName,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -727,50 +508,22 @@ class _HistoryPageState extends State<HistoryPage> {
                     const SizedBox(height: 8),
                     
                     // 基本信息
-                    _buildInfoRow(Icons.calendar_today, '日期：$formattedDate'),
-                    _buildInfoRow(Icons.timer_outlined, '时长：$duration 分钟'),
-                    _buildInfoRow(Icons.star_outline, '得分：${score.toStringAsFixed(1)}'),
-                    
-                    // 改进建议
-                    if (improvements.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      const Text(
-                        '改进建议',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ...improvements.map((improvement) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('• ', style: TextStyle(fontSize: 14)),
-                            Expanded(
-                              child: Text(
-                                improvement,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )),
-                    ],
+                    _buildInfoRow(Icons.calendar_today, 'Date: $formattedDate'),
+                    _buildInfoRow(Icons.timer_outlined, 'Duration: $duration minutes'),
+                    _buildInfoRow(Icons.star_outline, 'Score: ${score.toStringAsFixed(1)}'),
                     
                     // 其他数据
                     const SizedBox(height: 16),
                     const Text(
-                      '详细数据',
+                      'Detailed Data',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ...data.entries
-                        .where((entry) => !['exercise', 'duration', 'score', 'imageUrl', 'timestamp', 'improvements']
+                    ...record.entries
+                        .where((entry) => !['exerciseName', 'duration', 'score', 'imageUrl', 'timestamp']
                             .contains(entry.key))
                         .map((entry) => Padding(
                           padding: const EdgeInsets.only(bottom: 4),
@@ -789,16 +542,16 @@ class _HistoryPageState extends State<HistoryPage> {
                 children: [
                   TextButton.icon(
                     icon: const Icon(Icons.delete),
-                    label: const Text('删除'),
+                    label: const Text('Delete'),
                     style: TextButton.styleFrom(foregroundColor: Colors.red),
                     onPressed: () {
                       Navigator.pop(context);
-                      _confirmDeleteRecord(record.id);
+                      _confirmDeleteRecord(record['id'] as String);
                     },
                   ),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.share),
-                    label: const Text('分享'),
+                    label: const Text('Share'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                     ),
@@ -838,31 +591,62 @@ class _HistoryPageState extends State<HistoryPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: const Text('确定要删除这条训练记录吗？此操作不可撤销。'),
+        title: const Text('Confirm Delete'),
+        content: const Text('Are you sure you want to delete this record?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final userDataService = Provider.of<UserDataService>(context, listen: false);
-              final success = await userDataService.deleteTrainingRecord(recordId);
-              
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('记录已删除')),
-                );
-              } else if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('删除失败，请稍后再试')),
-                );
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    ).then((value) async {
+      if (value == true) {
+        final success = await _historyService.deleteExerciseHistory(recordId);
+        
+        if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Record deleted')),
+          );
+          setState(() {}); // Refresh list
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to delete, please try again later')),
+          );
+        }
+      }
+    });
+  }
+  
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.history,
+            size: 64,
+            color: Colors.grey,
+          ),
+          SizedBox(height: 16),
+          Text(
+            'No training records yet',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Complete a training session to see your records here',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
           ),
         ],
       ),
@@ -872,7 +656,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget _buildLoginPrompt() {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('训练历史'),
+        title: const Text('Training History'),
       ),
       body: Center(
         child: Column(
@@ -885,7 +669,7 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
             const SizedBox(height: 20),
             const Text(
-              '请登录以查看您的训练历史',
+              'Please log in to view your training history',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -896,7 +680,7 @@ class _HistoryPageState extends State<HistoryPage> {
               onPressed: () {
                 Navigator.of(context).pushNamed('/login');
               },
-              child: const Text('去登录'),
+              child: const Text('Log In'),
             ),
           ],
         ),

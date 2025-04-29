@@ -14,7 +14,7 @@ class ComparePainter extends CustomPainter {
     required this.userPose,
     required this.standardPose,
     required this.imageSize,
-    this.showStandardPose = true,
+    required this.showStandardPose,
   });
 
   static final Map<PoseLandmarkType, String> landmarkTypeMap = {
@@ -80,122 +80,160 @@ class ComparePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    debugPrint('\n===== ComparePainter 绘制信息 =====');
-    debugPrint('画布尺寸: ${size.width}x${size.height}');
-    debugPrint('输入图像尺寸: ${imageSize.width}x${imageSize.height}');
-    
-    // 使用姿势归一化工具对齐标准姿势
-    final alignedStandardPose = PoseNormalizer.alignStandardPoseToUser(
-      standardPose,
-      userPose,
-      imageSize,
+    // 只绘制用户姿势的骨骼线条（绿色）
+    _drawPose(
+      canvas,
+      userPose.landmarks,
       size,
+      const Color(0xFF00FF00),  // 使用绿色
+      strokeWidth: 4,
+      mirrorX: true,  // 镜像X轴，因为前置摄像头
     );
+  }
 
-    // 坐标转换函数 - 用户姿势需要镜像
-    Offset transformUserPoint(PoseLandmark landmark) {
-      // 翻转X轴方向，使其与前置摄像头匹配
-      return Offset(
-        size.width - (landmark.x / imageSize.width * size.width),
-        landmark.y / imageSize.height * size.height
+  void _drawPose(
+    Canvas canvas,
+    Map<PoseLandmarkType, PoseLandmark> landmarks,
+    Size size,
+    Color color, {
+    double strokeWidth = 2,
+    bool mirrorX = false,  // 添加镜像参数
+  }) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..color = color;
+
+    void drawLine(
+      PoseLandmarkType type1,
+      PoseLandmarkType type2,
+      Canvas canvas,
+      Size size,
+      Paint paint,
+    ) {
+      if (!landmarks.containsKey(type1) || !landmarks.containsKey(type2)) {
+        return;
+      }
+
+      final PoseLandmark joint1 = landmarks[type1]!;
+      final PoseLandmark joint2 = landmarks[type2]!;
+
+      // 计算坐标，如果需要则镜像
+      double x1 = joint1.x * size.width / imageSize.width;
+      double x2 = joint2.x * size.width / imageSize.width;
+      
+      if (mirrorX) {
+        x1 = size.width - x1;
+        x2 = size.width - x2;
+      }
+
+      canvas.drawLine(
+        Offset(
+          x1,
+          joint1.y * size.height / imageSize.height,
+        ),
+        Offset(
+          x2,
+          joint2.y * size.height / imageSize.height,
+        ),
+        paint,
       );
     }
 
-    // 记录要绘制的点和线，确保标准姿势先绘制，用户姿势后绘制
-    final standardLines = <(Offset, Offset)>[];
-    final standardPoints = <Offset>[];
-    final userLines = <(Offset, Offset)>[];
-    final userPoints = <Offset>[];
+    // Draw arms
+    drawLine(
+      PoseLandmarkType.leftShoulder,
+      PoseLandmarkType.leftElbow,
+      canvas,
+      size,
+      paint,
+    );
+    drawLine(
+      PoseLandmarkType.leftElbow,
+      PoseLandmarkType.leftWrist,
+      canvas,
+      size,
+      paint,
+    );
+    drawLine(
+      PoseLandmarkType.rightShoulder,
+      PoseLandmarkType.rightElbow,
+      canvas,
+      size,
+      paint,
+    );
+    drawLine(
+      PoseLandmarkType.rightElbow,
+      PoseLandmarkType.rightWrist,
+      canvas,
+      size,
+      paint,
+    );
 
-    // 收集标准姿势的线条和关键点
-    for (final connection in connections) {
-      final startType = connection.$1;
-      final endType = connection.$2;
-      
-      final startPoint = alignedStandardPose[startType];
-      final endPoint = alignedStandardPose[endType];
+    // Draw body
+    drawLine(
+      PoseLandmarkType.leftShoulder,
+      PoseLandmarkType.rightShoulder,
+      canvas,
+      size,
+      paint,
+    );
+    drawLine(
+      PoseLandmarkType.leftShoulder,
+      PoseLandmarkType.leftHip,
+      canvas,
+      size,
+      paint,
+    );
+    drawLine(
+      PoseLandmarkType.rightShoulder,
+      PoseLandmarkType.rightHip,
+      canvas,
+      size,
+      paint,
+    );
+    drawLine(
+      PoseLandmarkType.leftHip,
+      PoseLandmarkType.rightHip,
+      canvas,
+      size,
+      paint,
+    );
 
-      if (startPoint != null && endPoint != null) {
-        debugPrint('绘制标准姿势线条: ${startType.name} -> ${endType.name}');
-        
-        standardLines.add((startPoint, endPoint));
-        standardPoints.add(startPoint);
-        standardPoints.add(endPoint);
-      } else {
-        debugPrint('⚠️ 标准姿势缺少关键点: ${startType.name} 或 ${endType.name}');
-      }
-    }
-
-    // 收集用户姿势的线条和关键点
-    for (final connection in connections) {
-      final start = userPose.landmarks[connection.$1];
-      final end = userPose.landmarks[connection.$2];
-
-      if (start == null || end == null) continue;
-
-      final startOffset = transformUserPoint(start);
-      final endOffset = transformUserPoint(end);
-      
-      userLines.add((startOffset, endOffset));
-      userPoints.add(startOffset);
-      userPoints.add(endOffset);
-    }
-
-    // 先绘制标准姿势 - 蓝色
-    if (showStandardPose) {
-      final standardPaint = Paint()
-        ..color = Colors.blue.withOpacity(0.9)
-        ..strokeWidth = 6
-        ..style = PaintingStyle.stroke;
-
-      final standardJointPaint = Paint()
-        ..color = Colors.blue.withOpacity(1.0)
-        ..strokeWidth = 8
-        ..style = PaintingStyle.fill;
-
-      // 绘制标准姿势的线条
-      for (final line in standardLines) {
-        canvas.drawLine(line.$1, line.$2, standardPaint);
-      }
-
-      // 绘制标准姿势的关键点
-      for (final point in standardPoints) {
-        canvas.drawCircle(point, 4, standardJointPaint);
-      }
-    }
-
-    // 然后绘制用户姿势 - 绿色
-    final userPaint = Paint()
-      ..color = Colors.green.withOpacity(0.8)
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke;
-
-    final userJointPaint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 4
-      ..style = PaintingStyle.fill;
-
-    // 绘制用户姿势的线条
-    for (final line in userLines) {
-      canvas.drawLine(line.$1, line.$2, userPaint);
-    }
-
-    // 绘制用户姿势的关键点
-    for (final point in userPoints) {
-      canvas.drawCircle(point, 3, userJointPaint);
-    }
-
-    // 添加更多调试信息
-    debugPrint('\n===== 姿势对齐信息 =====');
-    debugPrint('标准姿势关键点总数: ${standardPose.landmarks.length}');
-    debugPrint('对齐后的标准姿势关键点总数: ${alignedStandardPose.length}');
+    // Draw legs
+    drawLine(
+      PoseLandmarkType.leftHip,
+      PoseLandmarkType.leftKnee,
+      canvas,
+      size,
+      paint,
+    );
+    drawLine(
+      PoseLandmarkType.leftKnee,
+      PoseLandmarkType.leftAnkle,
+      canvas,
+      size,
+      paint,
+    );
+    drawLine(
+      PoseLandmarkType.rightHip,
+      PoseLandmarkType.rightKnee,
+      canvas,
+      size,
+      paint,
+    );
+    drawLine(
+      PoseLandmarkType.rightKnee,
+      PoseLandmarkType.rightAnkle,
+      canvas,
+      size,
+      paint,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant ComparePainter oldDelegate) {
-    return oldDelegate.userPose != userPose || 
-           oldDelegate.standardPose != standardPose ||
-           oldDelegate.imageSize != imageSize ||
-           oldDelegate.showStandardPose != showStandardPose;
+  bool shouldRepaint(ComparePainter oldDelegate) {
+    return oldDelegate.userPose != userPose ||
+        oldDelegate.standardPose != standardPose;
   }
 }

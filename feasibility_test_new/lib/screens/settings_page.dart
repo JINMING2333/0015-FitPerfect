@@ -15,14 +15,14 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _darkModeEnabled = false;
   bool _saveTrainingHistory = true;
   double _cameraQuality = 0.5; // 0.0 - 1.0
-  String _selectedLanguage = '简体中文';
-  String _selectedTheme = '浅色模式';
+  String _selectedLanguage = 'English';
+  String _selectedTheme = 'Light Mode';
   
   final List<String> _availableLanguages = [
-    '简体中文',
     'English',
-    '日本語',
-    '한국어',
+    'Simplified Chinese',
+    'Japanese',
+    'Korean',
   ];
 
   @override
@@ -39,11 +39,11 @@ class _SettingsPageState extends State<SettingsPage> {
         _darkModeEnabled = prefs.getBool('dark_mode_enabled') ?? false;
         _saveTrainingHistory = prefs.getBool('save_training_history') ?? true;
         _cameraQuality = prefs.getDouble('camera_quality') ?? 0.5;
-        _selectedLanguage = prefs.getString('selected_language') ?? '简体中文';
-        _selectedTheme = prefs.getString('selected_theme') ?? '浅色模式';
+        _selectedLanguage = prefs.getString('selected_language') ?? 'English';
+        _selectedTheme = prefs.getString('selected_theme') ?? 'Light Mode';
       });
     } catch (e) {
-      debugPrint('无法加载设置: $e');
+      debugPrint('Failed to load settings: $e');
     }
   }
 
@@ -58,12 +58,12 @@ class _SettingsPageState extends State<SettingsPage> {
       await prefs.setString('selected_theme', _selectedTheme);
       
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('设置已保存')),
+        const SnackBar(content: Text('Settings saved')),
       );
     } catch (e) {
-      debugPrint('无法保存设置: $e');
+      debugPrint('Failed to save settings: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('保存设置失败')),
+        const SnackBar(content: Text('Failed to save settings')),
       );
     }
   }
@@ -72,15 +72,15 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('设置'),
+        title: const Text('Settings'),
         elevation: 0,
       ),
       body: ListView(
         children: [
-          _buildSectionHeader('通知设置'),
+          _buildSectionHeader('Notification Settings'),
           SwitchListTile(
-            title: const Text('接收通知'),
-            subtitle: const Text('启用以接收训练提醒'),
+            title: const Text('Enable Notifications'),
+            subtitle: const Text('Receive training reminders'),
             value: _notificationsEnabled,
             onChanged: (value) {
               setState(() {
@@ -90,9 +90,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const Divider(),
           
-          _buildSectionHeader('应用设置'),
+          _buildSectionHeader('App Settings'),
           ListTile(
-            title: const Text('语言'),
+            title: const Text('Language'),
             subtitle: Text(_selectedLanguage),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
@@ -100,7 +100,7 @@ class _SettingsPageState extends State<SettingsPage> {
             },
           ),
           ListTile(
-            title: const Text('主题'),
+            title: const Text('Theme'),
             subtitle: Text(_selectedTheme),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
@@ -109,32 +109,31 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const Divider(),
           
-          _buildSectionHeader('关于'),
+          _buildSectionHeader('About'),
           ListTile(
-            title: const Text('应用版本'),
+            title: const Text('App Version'),
             subtitle: const Text('1.0.0'),
           ),
           ListTile(
-            title: const Text('用户协议'),
+            title: const Text('Terms of Service'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
-              // 显示用户协议
+              // Show terms of service
             },
           ),
           ListTile(
-            title: const Text('隐私政策'),
+            title: const Text('Privacy Policy'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
-              // 显示隐私政策
+              // Show privacy policy
             },
           ),
           const Divider(),
           
-          // 添加开发选项
-          _buildSectionHeader('开发选项'),
+          _buildSectionHeader('Developer Options'),
           ListTile(
-            title: const Text('重置首次启动状态'),
-            subtitle: const Text('应用将在下次启动时显示引导页'),
+            title: const Text('Reset First Launch State'),
+            subtitle: const Text('App will show onboarding on next launch'),
             trailing: const Icon(Icons.refresh, color: Colors.red),
             onTap: () {
               _resetFirstLaunchState();
@@ -142,41 +141,37 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const Divider(),
           
-          // 底部按钮 - 退出账户
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: ElevatedButton(
               onPressed: () {
-                // 实现账户退出逻辑
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('确认退出'),
-                    content: const Text('您确定要退出当前账户吗？'),
+                    title: const Text('Confirm Logout'),
+                    content: const Text('Are you sure you want to log out?'),
                     actions: [
                       TextButton(
                         onPressed: () {
                           Navigator.of(context).pop();
                         },
-                        child: const Text('取消'),
+                        child: const Text('Cancel'),
                       ),
                       TextButton(
                         onPressed: () async {
                           Navigator.of(context).pop();
                           
-                          // 使用AuthService退出登录
                           final authService = Provider.of<AuthService>(context, listen: false);
                           await authService.logout();
                           
                           if (mounted) {
-                            // 退出到登录页
                             Navigator.of(context).pushNamedAndRemoveUntil(
                               '/login', 
-                              (route) => false, // 清除所有路由历史
+                              (route) => false,
                             );
                           }
                         },
-                        child: const Text('确认'),
+                        child: const Text('Confirm'),
                       ),
                     ],
                   ),
@@ -186,7 +181,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('退出账户'),
+              child: const Text('Log Out'),
             ),
           ),
         ],
@@ -213,12 +208,12 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) {
         return SimpleDialog(
-          title: const Text('选择语言'),
+          title: const Text('Select Language'),
           children: [
-            _buildLanguageOption('简体中文'),
             _buildLanguageOption('English'),
-            _buildLanguageOption('日本語'),
-            _buildLanguageOption('한국어'),
+            _buildLanguageOption('Simplified Chinese'),
+            _buildLanguageOption('Japanese'),
+            _buildLanguageOption('Korean'),
           ],
         );
       },
@@ -242,11 +237,11 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) {
         return SimpleDialog(
-          title: const Text('选择主题'),
+          title: const Text('Select Theme'),
           children: [
-            _buildThemeOption('浅色模式'),
-            _buildThemeOption('深色模式'),
-            _buildThemeOption('跟随系统'),
+            _buildThemeOption('Light Mode'),
+            _buildThemeOption('Dark Mode'),
+            _buildThemeOption('System Default'),
           ],
         );
       },
@@ -265,7 +260,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
   
-  // 重置首次启动状态
   Future<void> _resetFirstLaunchState() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -273,17 +267,17 @@ class _SettingsPageState extends State<SettingsPage> {
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('首次启动状态已重置，请重新启动应用'),
+          content: Text('First launch state has been reset, please restart the app'),
           duration: Duration(seconds: 2),
         ),
       );
       
-      debugPrint('首次启动状态已重置为true');
+      debugPrint('First launch state has been reset to true');
     } catch (e) {
-      debugPrint('重置首次启动状态错误: $e');
+      debugPrint('Error resetting first launch state: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('重置失败，请稍后再试'),
+          content: Text('Reset failed, please try again later'),
           duration: Duration(seconds: 2),
         ),
       );

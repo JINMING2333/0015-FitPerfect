@@ -13,26 +13,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
   
   final List<OnboardingItem> _items = [
     OnboardingItem(
-      title: '实时姿势评估',
-      description: '通过AI技术实时分析您的运动姿势，提供即时反馈。',
+      title: 'Real-time Pose Assessment',
+      description: 'Real-time analysis of your exercise posture using AI technology, providing instant feedback.',
       icon: Icons.camera_alt,
       color: Colors.blue,
     ),
     OnboardingItem(
-      title: '标准动作对比',
-      description: '与专业标准姿势进行对比，找出需要改进的地方。',
+      title: 'Standard Movement Comparison',
+      description: 'Compare with professional standard poses to identify areas for improvement.',
       icon: Icons.compare_arrows,
       color: Colors.green,
     ),
     OnboardingItem(
-      title: '个性化建议',
-      description: '根据您的表现提供个性化的改进建议和训练计划。',
+      title: 'Personalized Guidance',
+      description: 'Receive personalized improvement suggestions and training plans based on your performance.',
       icon: Icons.person,
       color: Colors.orange,
     ),
     OnboardingItem(
-      title: '进步追踪',
-      description: '记录您的训练历史，查看进步情况，保持动力。',
+      title: 'Progress Tracking',
+      description: 'Record your training history, monitor your progress, and stay motivated.',
       icon: Icons.trending_up,
       color: Colors.purple,
     ),
@@ -71,7 +71,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // 页面指示器
+                  // Page indicators
                   Row(
                     children: List.generate(
                       _items.length,
@@ -88,7 +88,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                     ),
                   ),
-                  // 按钮区域
+                  // Button area
                   _currentPage < _items.length - 1
                       ? ElevatedButton(
                           onPressed: () {
@@ -103,11 +103,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: const Text('下一步'),
+                          child: const Text('Next'),
                         )
                       : ElevatedButton(
                           onPressed: () {
-                            // 引导页结束后跳转到登录页面
+                            // Navigate to login page after onboarding
                             Navigator.of(context).pushReplacementNamed('/login');
                           },
                           style: ElevatedButton.styleFrom(
@@ -116,7 +116,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: const Text('开始使用'),
+                          child: const Text('Get Started'),
                         ),
                 ],
               ),

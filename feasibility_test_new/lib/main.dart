@@ -5,7 +5,7 @@ import 'firebase_options.dart';
 import 'screens/splash_page.dart';
 import 'screens/onboarding_page.dart';
 import 'screens/pose_compare_page.dart';
-import 'screens/history_page.dart';
+import 'screens/exercise_history_page.dart';
 import 'screens/community_page.dart';
 import 'screens/settings_page.dart';
 import 'screens/pose_image_test_page.dart';
@@ -79,14 +79,26 @@ class MyApp extends StatelessWidget {
           },
           '/pose_compare': (context) {
             final Object? args = ModalRoute.of(context)?.settings.arguments;
-            return PoseComparePage(exerciseId: args as String);
+            if (args is String) {
+              return PoseComparePage(exerciseId: args);
+            } else if (args is Map<String, dynamic>) {
+              return PoseComparePage(
+                exerciseId: args['exerciseId'] as String,
+                name: args['name'] as String?,
+                level: args['level'] as int?,
+              );
+            }
+            return const PoseComparePage();
           },
           '/test_image_pose': (context) => const PoseImageTestPage(),
           '/breakthrough_mode': (context) {
             final Object? args = ModalRoute.of(context)?.settings.arguments;
-            return BreakthroughModePage(
-              selectedSport: args is String ? args : null,
-            );
+            if (args is Map<String, dynamic>) {
+              return BreakthroughModePage(
+                selectedSport: args['name'] as String,
+              );
+            }
+            return const BreakthroughModePage();
           },
           '/recommended_sports': (context) => const RecommendedSportsPage(),
         },
@@ -119,12 +131,12 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   
   final List<Widget> _pages = [
     const RecommendedSportsPage(),
-    const HistoryPage(),
+    const ExerciseHistoryPage(),
     const CommunityPage(),
     const SettingsPage(),
   ];
   
-  final List<String> _titles = ['推荐', '历史记录', '社区', '设置'];
+  final List<String> _titles = ['Home', 'History', 'Community', 'Settings'];
 
   @override
   Widget build(BuildContext context) {
